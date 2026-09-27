@@ -6,6 +6,7 @@ namespace Pest\Flow;
 
 use Closure;
 use LogicException;
+use Pest\Flow\FlowRegistry;
 use Pest\Flow\Model\FeatureNode;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -21,6 +22,7 @@ function feature(string $name, Closure $definition): void
     }
 
     $feature = new FeatureNode($name, SourceLocation::capture());
+    FlowRegistry::registerFeature($feature);
 
     \describe($name, static function () use ($feature, $definition): void {
         FlowContext::withFeature($feature, $definition);
@@ -58,6 +60,7 @@ function scenario(string $name, Closure $definition): void
 
     $scenario = new ScenarioNode($name, SourceLocation::capture(), $rule);
     $rule?->addScenario($scenario);
+    FlowRegistry::registerScenario($scenario);
 
     \it($name, function () use ($scenario, $definition): void {
         ScenarioRunner::run($scenario, $this, $definition);
