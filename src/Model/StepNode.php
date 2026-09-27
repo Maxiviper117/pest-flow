@@ -7,11 +7,16 @@ namespace Pest\Flow\Model;
 /**
  * @internal
  */
-final readonly class StepNode
+final class StepNode
 {
+    public string $id;
+
     public function __construct(
-        public StepType $type,
-        public string $description,
-        public SourceLocation $source,
-    ) {}
+        public readonly StepType $type,
+        public readonly string $description,
+        public readonly SourceLocation $source,
+        ?string $id = null,
+    ) {
+        $this->id = $id ?? NodeIdentifier::fromName($type->value.'-'.$description);
+    }
 }

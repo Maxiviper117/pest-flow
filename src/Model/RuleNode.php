@@ -14,17 +14,27 @@ final class RuleNode
      */
     private array $scenarios = [];
 
+    public string $id;
+
     public function __construct(
         public readonly string $name,
         public readonly SourceLocation $source,
         public readonly FeatureNode $feature,
-    ) {}
+    ) {
+        $this->id = NodeIdentifier::child($feature->id, $name);
+    }
 
     public function addScenario(ScenarioNode $scenario): void
     {
         if ($scenario->rule !== $this) {
             throw new \LogicException('A scenario can only be added to its owning rule.');
         }
+
+        $scenario->id = NodeIdentifier::child(
+            $this->id,
+            $scenario->name,
+            array_map(static fn (ScenarioNode $existing): string => $existing->id, $this->scenarios),
+        );
 
         $this->scenarios[] = $scenario;
     }
