@@ -57,7 +57,7 @@ IDs must be unique among siblings. If two siblings have the same normalized name
 
 ## A later step does not run after a failure
 
-Steps run as ordinary PHP closures in declaration order. If a step throws an exception or a Pest expectation fails, the exception stops the scenario, just as it would in a regular Pest test. Move independent assertions into separate scenarios when they should fail independently.
+Steps run as ordinary PHP closures in declaration order. If a step throws an exception or a Pest expectation fails, Pest Flow records the exception, marks later declared steps as skipped, and rethrows the same exception to Pest. Their callbacks do not run. Move independent assertions into separate scenarios when they should fail independently.
 
 ## Pest reports no scenario
 

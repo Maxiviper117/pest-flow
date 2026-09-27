@@ -14,10 +14,10 @@ Feature
         └── Then
 ~~~
 
-Pest still discovers and runs each scenario as a normal test. You keep Pest's assertions, lifecycle hooks, test runner, and failure output. Pest Flow records the behaviour structure so PHP code can inspect features, rules, scenarios, steps, stable identifiers, and source locations.
+Pest still discovers and runs each scenario as a normal test. You keep Pest's assertions, lifecycle hooks, test runner, and failure output. Pest Flow records features, rules, scenarios, steps, identifiers, source locations, execution statuses, durations, and captured exceptions for PHP code to inspect.
 
 :::note[Current capabilities]
-The current release provides the DSL and an in-memory behaviour registry. Steps are recorded as their scenario executes. Test results, reports, exports, and generated living documentation are not provided yet.
+The current release provides the DSL and an in-memory behaviour registry with scenario and step execution metadata. Console reports, JSON exports, and generated living documentation are not provided yet.
 :::
 
 ## Choose a starting point

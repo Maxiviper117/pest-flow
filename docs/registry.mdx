@@ -23,7 +23,7 @@ Each method returns a list in declaration order:
 | `features()` | `list<FeatureNode>` | Top-level feature declarations. |
 | `rules()` | `list<RuleNode>` | All rules, flattened in feature and declaration order. |
 | `scenarios()` | `list<ScenarioNode>` | All scenarios, including standalone scenarios. |
-| `steps()` | `list<StepNode>` | Steps recorded so far for scenarios that have executed. |
+| `steps()` | `list<StepNode>` | Step declarations recorded by scenarios that have started, including steps skipped after a failure. |
 
 You can also walk the tree from a feature: `FeatureNode::rules()`, `RuleNode::scenarios()`, and `ScenarioNode::steps()` return each node's children.
 
@@ -35,12 +35,16 @@ The node objects expose their data as public properties:
 | --- | --- | --- |
 | `FeatureNode` | `id: string`, `name: string`, `source: SourceLocation` | `rules(): list<RuleNode>` |
 | `RuleNode` | `id: string`, `name: string`, `source: SourceLocation`, `feature: FeatureNode` | `scenarios(): list<ScenarioNode>` |
-| `ScenarioNode` | `id: string`, `name: string`, `source: SourceLocation`, `rule: ?RuleNode` | `steps(): list<StepNode>` |
-| `StepNode` | `id: string`, `type: StepType`, `description: string`, `source: SourceLocation` | None |
+| `ScenarioNode` | `id: string`, `name: string`, `source: SourceLocation`, `rule: ?RuleNode`, `status: ExecutionStatus`, `duration: ?float`, `exception: ?Throwable` | `steps(): list<StepNode>` |
+| `StepNode` | `id: string`, `type: StepType`, `description: string`, `source: SourceLocation`, `status: ExecutionStatus`, `duration: ?float`, `exception: ?Throwable` | None |
 
 `SourceLocation` provides `file: string` and `line: int` for the DSL declaration. For a feature, rule, or scenario, that is where its helper was called. For a step, it is the line where `given()`, `when()`, or `then()` was called.
 
 `StepType` is a backed enum with `Given`, `When`, and `Then` cases. Its string values are `given`, `when`, and `then`.
+
+`ExecutionStatus` is a backed enum with `Pending`, `Running`, `Passed`, `Failed`, and `Skipped` cases. Its string values are `pending`, `running`, `passed`, `failed`, and `skipped`. A scenario or step that has not run remains `Pending`. A failing step stores its thrown `Throwable` and duration; Pest Flow rethrows that same exception so Pest retains its normal failure behavior. Steps declared after the failure are present with `Skipped` status and no duration or exception. A Pest skip exception marks the active step and scenario as skipped.
+
+Durations are floating-point seconds measured with a monotonic high-resolution clock when available. A duration is `null` until execution completes. The scenario duration covers step declaration collection and execution; each step duration covers its callback only.
 
 ## Runtime identifiers
 
@@ -64,19 +68,19 @@ Standalone scenarios have no feature or rule parent, so their IDs are based on t
 
 ## When nodes are available
 
-Feature, rule, and scenario nodes are registered as Pest loads the test definitions. Step callbacks are part of a test's execution, so step nodes do not exist until their scenario runs.
+Feature, rule, and scenario nodes are registered as Pest loads the test definitions. Step nodes are created when their scenario runs, before any step callback executes. Pest Flow collects the declarations first so it can retain later steps as `Skipped` if an earlier callback fails.
 
 ~~~php
 // During test collection, a declared scenario is already in the registry.
 $scenario = FlowRegistry::scenarios()[0];
 $scenario->steps(); // empty until this scenario executes
 
-// Inside a Then step, the current scenario's steps have been recorded.
+// Inside a Then step, all declared steps are in the registry.
 FlowRegistry::steps();
 ~~~
 
-`FlowRegistry::steps()` aggregates recorded steps by scenario declaration order, with each scenario's steps in execution order. If a scenario runs more than once in the same process, its previous step list is cleared before the next run. If a step throws, steps recorded before the failure remain visible for that run; later steps are not recorded.
+`FlowRegistry::steps()` aggregates recorded steps by scenario declaration order, with each scenario's steps in declaration order. If a scenario runs more than once in the same process, its previous step list and execution metadata are cleared before the next run. If a step throws, its exception and duration remain visible, earlier steps remain `Passed`, and later declared steps are `Skipped` without being executed.
 
-The registry is static and process-local. It does not aggregate data across separate PHP processes, store pass/fail results, or provide a reset/reporting API. Parallel test workers therefore have separate registry state.
+The registry is static and process-local. It does not aggregate data across separate PHP processes or provide a reset/reporting API. Parallel test workers therefore have separate registry state. A scenario that Pest never enters, including one skipped by a hook before its callback starts, remains `Pending` in the registry.
 
 For a live example that inspects IDs and steps from a test, follow [the registry walkthrough](./walkthroughs/inspect-registry). See the [DSL reference](./api) for how declarations are created.

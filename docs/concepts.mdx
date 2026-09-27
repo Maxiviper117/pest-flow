@@ -40,9 +40,11 @@ These helpers label the parts of a scenario:
 - **When** performs the action under test.
 - **Then** checks the outcome, usually with Pest expectations.
 
-Each step closure executes immediately when the scenario runs, in the order written. All step closures share the same Pest test object, so values assigned through `$this` in one step are available in the next. If a step throws or an expectation fails, the exception fails the test and later steps do not run.
+When a scenario runs, Pest Flow first records its step declarations, then executes their closures in declaration order. All step closures share the same Pest test object, so values assigned through `$this` in one step are available in the next. If a step throws or an expectation fails, Pest Flow records the exception and rethrows it to Pest. Later step closures do not run, and their recorded nodes receive the `Skipped` status.
 
-The labels are conventions, not a validator: Pest Flow does not require exactly one step of each type or enforce a particular Given/When/Then order. It records the type, description, and source location of every step that actually runs.
+Keep scenario callbacks focused on declaring steps. Statements outside step closures run during the declaration pass, before any step closure executes.
+
+The labels are conventions, not a validator: Pest Flow does not require exactly one step of each type or enforce a particular Given/When/Then order. It records the type, description, and source location of every declared step, including steps skipped after a failure.
 
 ## Test hooks and context
 
@@ -92,7 +94,7 @@ $scenarios = FlowRegistry::scenarios();
 $steps = FlowRegistry::steps();
 ~~~
 
-Features, rules, and scenarios are registered while Pest loads the test definitions. Step nodes are added when their scenario executes. The registry is process-local and records structure, not test results. Read [the registry reference](./registry) for timing, fields, and identifier rules.
+Features, rules, and scenarios are registered while Pest loads the test definitions. Step nodes are added when their scenario runs, before step closures execute. Scenario and step nodes expose execution status, duration, and any captured exception. The registry is process-local. Read [the registry reference](./registry) for timing, fields, and identifier rules.
 
 ## Next steps
 
