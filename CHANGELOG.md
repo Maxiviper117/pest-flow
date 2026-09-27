@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/Maxiviper117/pest-flow/compare/v0.2.0...v0.3.0) (2026-09-27)
+
+
+### Features
+
+* record scenario and step execution metadata ([#14](https://github.com/Maxiviper117/pest-flow/issues/14)) ([ef72169](https://github.com/Maxiviper117/pest-flow/commit/ef72169692f214787f954322792bd3ac55813856))
+
 ## [0.2.0](https://github.com/Maxiviper117/pest-flow/compare/v0.1.0...v0.2.0) (2026-09-27)
 
 
