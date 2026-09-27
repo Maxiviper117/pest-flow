@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/Maxiviper117/pest-flow/compare/v0.1.0...v0.2.0) (2026-09-27)
+
+
+### Features
+
+* add behaviour registry model ([#7](https://github.com/Maxiviper117/pest-flow/issues/7)) ([6916888](https://github.com/Maxiviper117/pest-flow/commit/6916888907bf374bbbb065ebb1c62698e2335d07))
+* register DSL nodes in behaviour registry ([#8](https://github.com/Maxiviper117/pest-flow/issues/8)) ([77e6d4b](https://github.com/Maxiviper117/pest-flow/commit/77e6d4bf78ccb60eb9448df8d1e9fb8cbd3448b9))
+
+
+### Bug Fixes
+
+* update .gitignore and rename PRD.md path ([a532dbe](https://github.com/Maxiviper117/pest-flow/commit/a532dbede95f8c7d96ee3b41098c1e0a03f94ddb))
+
 ## [0.1.0](https://github.com/Maxiviper117/pest-flow/compare/v0.0.2...v0.1.0) (2026-09-27)
 
 
