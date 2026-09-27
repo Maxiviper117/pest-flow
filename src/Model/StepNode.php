@@ -9,6 +9,8 @@ namespace Pest\Flow\Model;
  */
 final class StepNode
 {
+    use TracksExecution;
+
     public string $id;
 
     public function __construct(

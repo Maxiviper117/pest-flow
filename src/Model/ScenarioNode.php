@@ -9,6 +9,8 @@ namespace Pest\Flow\Model;
  */
 final class ScenarioNode
 {
+    use TracksExecution;
+
     /**
      * @var list<StepNode>
      */
