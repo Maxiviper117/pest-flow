@@ -1,0 +1,58 @@
+---
+title: Quickstart
+description: Install Pest Flow and write your first behaviour scenario.
+---
+
+## Requirements
+
+- PHP 8.4 or newer
+- Pest 5
+- Composer
+
+## Install
+
+Pest Flow is not yet listed on Packagist. Until it is, add the public GitHub repository as a Composer VCS source and require its main branch:
+
+~~~sh
+composer config repositories.pest-flow vcs https://github.com/Maxiviper117/pest-flow
+composer require --dev pest-flow/pest-flow:dev-main
+~~~
+
+When installing a tagged release that includes this DSL, use its version constraint instead of dev-main.
+
+## Write a scenario
+
+Import the functions in a Pest test file, then describe the behaviour:
+
+~~~php
+<?php
+
+use function Pest\Flow\{feature, rule, scenario, given, when, then};
+
+feature('Calculator', function (): void {
+    rule('Addition returns the sum', function (): void {
+        scenario('Add two numbers', function (): void {
+            given('two numbers', function (): void {
+                $this->left = 2;
+                $this->right = 3;
+            });
+
+            when('they are added', function (): void {
+                $this->result = $this->left + $this->right;
+            });
+
+            then('the sum is five', function (): void {
+                expect($this->result)->toBe(5);
+            });
+        });
+    });
+});
+~~~
+
+Save the example in a test file such as tests/Feature/CalculatorFlowTest.php and run it with Pest:
+
+~~~sh
+vendor/bin/pest tests/Feature/CalculatorFlowTest.php
+~~~
+
+Each scenario is registered as a regular Pest test, so existing Pest configuration and assertions continue to work.

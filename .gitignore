@@ -9,3 +9,8 @@
 composer.lock
 *.swp
 *.swo
+node_modules/
+.blume/
+dist/
+/docs/PRD.md
+/project docs/PRD.md
