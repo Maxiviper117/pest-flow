@@ -6,7 +6,6 @@ namespace Pest\Flow;
 
 use Closure;
 use LogicException;
-use Pest\Flow\FlowRegistry;
 use Pest\Flow\Model\FeatureNode;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
