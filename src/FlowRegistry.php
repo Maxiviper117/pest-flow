@@ -69,11 +69,11 @@ final class FlowRegistry
             return;
         }
 
-        if (!$scenario->rule instanceof \Pest\Flow\Model\RuleNode) {
+        if (! $scenario->rule instanceof RuleNode) {
             $rootScenarios = array_values(
                 array_filter(
                     self::$scenarios,
-                    static fn (ScenarioNode $registered): bool => !$registered->rule instanceof \Pest\Flow\Model\RuleNode,
+                    static fn (ScenarioNode $registered): bool => ! $registered->rule instanceof RuleNode,
                 ),
             );
 
