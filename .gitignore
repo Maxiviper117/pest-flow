@@ -12,6 +12,5 @@ composer.lock
 node_modules/
 .blume/
 dist/
-/docs/PRD.md
-/project docs/PRD.md
 .blume-verify/
+/project_docs/PRD.md
