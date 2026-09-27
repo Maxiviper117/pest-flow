@@ -15,14 +15,14 @@ trait TracksExecution
 
     public ?Throwable $exception = null;
 
-    private ?int $executionStartedAt = null;
+    private ?float $executionStartedAt = null;
 
     public function startExecution(): void
     {
         $this->status = ExecutionStatus::Running;
         $this->duration = null;
         $this->exception = null;
-        $this->executionStartedAt = hrtime(true);
+        $this->executionStartedAt = self::executionTime();
     }
 
     public function markPassed(): void
@@ -43,11 +43,18 @@ trait TracksExecution
     private function finishExecution(ExecutionStatus $status, ?Throwable $exception = null): void
     {
         if ($this->executionStartedAt !== null) {
-            $this->duration = (hrtime(true) - $this->executionStartedAt) / 1_000_000_000;
+            $this->duration = self::executionTime() - $this->executionStartedAt;
             $this->executionStartedAt = null;
         }
 
         $this->status = $status;
         $this->exception = $exception;
+    }
+
+    private static function executionTime(): float
+    {
+        $time = hrtime(true);
+
+        return $time === false ? microtime(true) : $time / 1_000_000_000;
     }
 }
