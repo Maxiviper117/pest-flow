@@ -1,0 +1,30 @@
+---
+title: Core concepts
+description: How Pest Flow maps behaviour specifications onto Pest tests.
+---
+
+## Feature
+
+A feature names a user-visible capability or domain area, such as account registration or invoice approval. It maps to a Pest describe group.
+
+## Rule
+
+A rule names a business constraint within a feature. It also maps to a Pest describe group, so feature and rule lifecycle hooks continue to apply.
+
+## Scenario
+
+A scenario describes one concrete example of a rule. Pest Flow registers it as a normal Pest test with the scenario name.
+
+## Given, When, Then
+
+Steps describe the setup, action, and expected outcome inside a scenario:
+
+- Given establishes the starting state.
+- When performs the action being described.
+- Then checks the result with ordinary Pest expectations.
+
+Each step closure runs in declaration order and shares the scenario's Pest test context. Values assigned through $this in one step are available to later steps.
+
+## Structure and execution
+
+The DSL groups related tests, but Pest remains responsible for discovery, hooks, assertions, and test results. A feature contains rules, a rule contains scenarios, and a scenario contains its steps. A rule declared outside a feature or a step declared outside a scenario raises a LogicException.

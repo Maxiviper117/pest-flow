@@ -1,0 +1,23 @@
+---
+title: Introduction
+description: Write executable behaviour specifications in native Pest tests.
+---
+
+Pest Flow is a Pest 5 plugin for describing application behaviour with native PHP tests. It adds a small BDD-style structure around Pest's existing test runner:
+
+~~~text
+Feature
+└── Rule
+    └── Scenario
+        ├── Given
+        ├── When
+        └── Then
+~~~
+
+Pest still runs every scenario as a normal test. Pest Flow gives those tests a shared vocabulary and makes their behaviour easier to read in the codebase.
+
+:::note[Current scope]
+The current DSL registers features, rules, scenarios, and steps during Pest's normal test discovery and execution. Reports, exports, and generated living documentation are planned for later milestones.
+:::
+
+Start with the [quickstart](./quickstart) or read about [the core concepts](./concepts).

@@ -6,6 +6,10 @@
 
 Draft
 
+### Implementation Status
+
+The current implementation covers Milestones 0 and 1. Milestones 2 through 9 remain planned.
+
 ### Product
 
 Pest Flow
@@ -407,6 +411,11 @@ A scenario should behave as a single Pest test.
 
 Steps should execute sequentially within that test.
 
+The Milestone 1 implementation registers each scenario as an ordinary Pest test. When Pest runs
+that test, Pest Flow records and executes each step in declaration order with the same Pest test
+context. A failing step exception reaches Pest and prevents later steps from running. Per-step
+execution states remain planned for Milestone 3.
+
 If a step fails:
 
 ```text
@@ -717,6 +726,10 @@ This structure is illustrative, not prescriptive.
 
 ## Milestone 0: Technical Spike
 
+### Status
+
+Complete
+
 ### Goal
 
 Prove that the core model integrates cleanly with Pest.
@@ -734,11 +747,11 @@ then()
 
 Verify:
 
-- scenario maps cleanly to a Pest test
-- Pest lifecycle hooks continue working
-- `$this` context works correctly
-- failures propagate to Pest
-- steps execute in deterministic order
+- [x] Scenario maps cleanly to a Pest test.
+- [x] Pest lifecycle hooks continue working.
+- [x] `$this` context works correctly.
+- [x] Failures propagate to Pest.
+- [x] Steps execute in deterministic order.
 
 Example:
 
@@ -763,11 +776,15 @@ scenario('addition works', function () {
 
 ### Success criteria
 
-The scenario runs as an ordinary Pest test with no custom runner.
+Met. A scenario runs as an ordinary Pest test. Pest remains the test runner.
 
 ---
 
 # Milestone 1: Core DSL
+
+### Status
+
+Complete
 
 ### Goal
 
@@ -777,14 +794,12 @@ Implement the complete structural hierarchy.
 
 Support:
 
-```text
-Feature
-Rule
-Scenario
-Given
-When
-Then
-```
+- [x] Feature
+- [x] Rule
+- [x] Scenario
+- [x] Given
+- [x] When
+- [x] Then
 
 API:
 
@@ -799,23 +814,29 @@ then(...)
 
 Implement internal nodes:
 
-```text
-FeatureNode
-RuleNode
-ScenarioNode
-StepNode
-```
+- [x] `FeatureNode`
+- [x] `RuleNode`
+- [x] `ScenarioNode`
+- [x] `StepNode`
 
 Track source information:
 
-```text
-file
-line
-```
+- [x] Source file
+- [x] Source line
+
+### Implemented behavior
+
+- `feature()` and `rule()` register Pest `describe()` groups. `scenario()` registers a Pest `it()` test.
+- Given, When, and Then steps execute in declaration order within the same Pest test context.
+- Each step node records its type, description, source file, and source line.
+- A failing step propagates its exception to Pest and prevents later steps from running.
+- The runner clears recorded steps before each scenario execution.
+- Feature and rule lifecycle hooks run before scenario steps.
+- The DSL rejects rules outside features, nested features and rules, scenarios without a rule inside a feature, and steps outside a scenario.
 
 ### Success criteria
 
-A full behaviour tree can be constructed and executed through Pest.
+Met. Tests construct the model hierarchy and run nested feature, rule, and scenario definitions through Pest.
 
 ---
 
@@ -1144,24 +1165,17 @@ An agent can understand expected application behaviour without reading the entir
 
 # 19. MVP Boundary
 
-The MVP should stop after Milestone 5.
+The MVP target should stop after Milestone 5. The current implementation covers Milestones 0 and 1.
+Work on Milestones 2 through 5 remains planned.
 
 MVP therefore includes:
 
-```text
-✓ Pest plugin
-✓ Feature
-✓ Rule
-✓ Scenario
-✓ Given
-✓ When
-✓ Then
-✓ Structured behaviour registry
-✓ Scenario execution through Pest
-✓ Step execution state
-✓ Console representation
-✓ JSON export
-```
+- Pest plugin and the Feature, Rule, Scenario, Given, When, and Then DSL (Milestone 1: implemented).
+- Scenario execution through Pest (Milestone 1: implemented).
+- Structured behaviour registry (Milestone 2: planned).
+- Step execution state (Milestone 3: planned).
+- Console representation (Milestone 4: planned).
+- JSON export (Milestone 5: planned).
 
 It should not initially include:
 
@@ -1264,9 +1278,10 @@ pest --flow-json=flow.json
 
 # 21. Open Design Questions
 
-The following should be answered during Milestones 0 and 1.
+Milestone 1 resolved the DSL structure, step execution, and failure behaviour. The remaining
+questions apply to later milestones.
 
-### DSL construction
+### DSL construction (resolved in Milestone 1)
 
 Should the primary API be nested closures:
 
@@ -1287,23 +1302,22 @@ feature('...')
     ->scenario('...');
 ```
 
-Nested closures are likely more natural for Pest and preserve hierarchy visually.
+The DSL uses nested closures. Features and rules register Pest `describe()` groups, and scenarios
+register Pest `it()` tests.
 
 ---
 
-### Step execution
+### Step execution (resolved for the current implementation)
 
-Should steps execute immediately as the scenario closure runs or first be registered and then executed?
+Steps execute immediately as Pest runs the scenario closure. The runner records each step before it
+calls the step closure. A failure stops registration and execution of later steps.
 
-Register-first is more powerful because Pest Flow can inspect the complete scenario before execution.
-
-However, it creates more framework complexity.
-
-The technical spike should explicitly compare both approaches.
+The complete step list is not collected before a scenario starts. Milestone 2's registry will support
+programmatic inspection of discovered behaviour.
 
 ---
 
-### Failure behaviour
+### Failure behaviour (implemented in Milestone 1)
 
 If a `When` step fails:
 
@@ -1313,13 +1327,13 @@ When  ✗
 Then  ?
 ```
 
-Preferred initial behaviour:
+Current behaviour:
 
 ```text
-Then skipped
+Exception reaches Pest; later steps do not run.
 ```
 
-rather than attempting downstream assertions.
+Milestone 3 will add explicit execution states, including `failed` and `skipped`.
 
 ---
 

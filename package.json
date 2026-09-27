@@ -1,0 +1,17 @@
+{
+  "name": "pest-flow-docs",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.4.2",
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "doctor": "blume doctor"
+  },
+  "dependencies": {
+    "blume": "^2.0.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

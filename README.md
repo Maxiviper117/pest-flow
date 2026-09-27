@@ -61,3 +61,8 @@ Run the full suite with `composer test`.
 Google's Release Please action opens or updates a release pull request on pushes to `main`. Merging that PR creates the version tag and GitHub release. Use [Conventional Commits](https://www.conventionalcommits.org/) so Release Please can determine the version bump and changelog.
 
 The package stays below `1.0.0` until the project deliberately moves to v1. Before v1, `feat:` changes bump the minor version, `fix:` changes bump the patch version, and breaking changes bump the minor version.
+
+## Documentation
+
+Read the [Pest Flow documentation](https://maxiviper117.github.io/pest-flow/). Run `pnpm install` and `pnpm run dev` to work on the site locally; create a production build with `pnpm run build`.
+The documentation site requires Node.js 22.12 or newer.
