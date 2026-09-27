@@ -14,3 +14,4 @@ node_modules/
 dist/
 /docs/PRD.md
 /project docs/PRD.md
+.blume-verify/

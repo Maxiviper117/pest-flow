@@ -1,0 +1,142 @@
+---
+title: Build your first scenario
+description: Write and run a complete contractor activation scenario with Pest Flow.
+---
+
+This walkthrough builds a test for one business rule: only compliant contractors can activate. It uses ordinary Pest state and expectations, organized as a feature, rule, scenario, and three steps.
+
+## 1. Import the DSL
+
+In a Pest test file, import the functions you want to use:
+
+~~~php
+use function Pest\Flow\{feature, rule, scenario, given, when, then};
+~~~
+
+The functions are loaded by Composer. You only need these imports to call them without a fully qualified name.
+
+## 2. Name the behavior
+
+Start with a feature and the rule it demonstrates:
+
+~~~php
+feature('Contractor activation', function (): void {
+    rule('Only compliant contractors may activate', function (): void {
+        // Scenarios for this rule go here.
+    });
+});
+~~~
+
+Pest Flow maps `feature()` and `rule()` to nested Pest `describe` groups. Put Pest setup hooks in the group whose tests need them.
+
+## 3. Add a scenario and state
+
+A scenario is a regular Pest test. Use `given()` to establish its starting state on Pest's test object:
+
+~~~php
+scenario('Activates a compliant contractor', function (): void {
+    given('a compliant contractor', function (): void {
+        $this->contractor = [
+            'compliant' => true,
+            'active' => false,
+        ];
+    });
+});
+~~~
+
+## 4. Add the action and expectation
+
+Use `when()` for the action and `then()` for the assertion. The same `$this->contractor` is available in all three callbacks:
+
+~~~php
+when('they activate', function (): void {
+    if (! $this->contractor['compliant']) {
+        throw new RuntimeException('Only compliant contractors may activate.');
+    }
+
+    $this->contractor['active'] = true;
+});
+
+then('activation is recorded', function (): void {
+    expect($this->contractor['active'])->toBeTrue();
+});
+~~~
+
+If the action throws, Pest marks the scenario as failed and the `Then` step does not run. For this successful example the contractor is compliant, so the `Then` expectation passes.
+
+## 5. Run it
+
+Save the complete test as `tests/Feature/ContractorActivationTest.php`, then run it from the project root:
+
+~~~sh
+vendor/bin/pest tests/Feature/ContractorActivationTest.php
+~~~
+
+The complete file below also inspects the behaviour registry and asserts the generated IDs. The imports and assertions are ordinary Pest and PHP code; Pest Flow only provides the behaviour grouping and step recording.
+
+## Complete test
+
+~~~php
+<?php
+
+declare(strict_types=1);
+
+use Pest\Flow\FlowRegistry;
+use Pest\Flow\Model\StepNode;
+
+use function Pest\Flow\feature;
+use function Pest\Flow\given;
+use function Pest\Flow\rule;
+use function Pest\Flow\scenario;
+use function Pest\Flow\then;
+use function Pest\Flow\when;
+
+feature('Contractor activation', function (): void {
+    rule('Only compliant contractors may activate', function (): void {
+        scenario('Activates a compliant contractor', function (): void {
+            given('a compliant contractor', function (): void {
+                $this->contractor = [
+                    'compliant' => true,
+                    'active' => false,
+                ];
+            });
+
+            when('they activate', function (): void {
+                if (! $this->contractor['compliant']) {
+                    throw new RuntimeException('Only compliant contractors may activate.');
+                }
+
+                $this->contractor['active'] = true;
+            });
+
+            then('activation is recorded', function (): void {
+                expect($this->contractor['active'])->toBeTrue();
+
+                $feature = FlowRegistry::features()[0];
+                $rule = $feature->rules()[0];
+                $scenario = $rule->scenarios()[0];
+
+                expect($feature->id)->toBe('contractor-activation')
+                    ->and($rule->id)->toBe('contractor-activation/only-compliant-contractors-may-activate')
+                    ->and($scenario->id)->toBe('contractor-activation/only-compliant-contractors-may-activate/activates-a-compliant-contractor')
+                    ->and(array_map(
+                        static fn (StepNode $step): string => $step->id,
+                        $scenario->steps(),
+                    ))->toBe([
+                        'contractor-activation/only-compliant-contractors-may-activate/activates-a-compliant-contractor/given-a-compliant-contractor',
+                        'contractor-activation/only-compliant-contractors-may-activate/activates-a-compliant-contractor/when-they-activate',
+                        'contractor-activation/only-compliant-contractors-may-activate/activates-a-compliant-contractor/then-activation-is-recorded',
+                    ]);
+            });
+        });
+    });
+});
+~~~
+
+## What just happened
+
+1. Pest loaded the feature, rule, and scenario declarations and registered those nodes.
+2. Pest ran the scenario as a test and called `Given`, `When`, then `Then` on the same test object.
+3. Each step was recorded as it ran. The `Then` callback could inspect the scenario's steps and IDs.
+
+Continue with [Inspect the registry](./inspect-registry) to see the node fields and when each part of the registry is available.

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pest\Flow\Model;
 
 /**
- * @internal
+ * A step node in the discovered behaviour registry.
  */
 final class StepNode
 {

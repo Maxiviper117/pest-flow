@@ -1,7 +1,9 @@
 ---
 title: Quickstart
-description: Install Pest Flow and write your first behaviour scenario.
+description: Install Pest Flow and run your first behaviour scenario with Pest.
 ---
+
+This guide installs Pest Flow from GitHub, adds one feature test, and runs it with Pest. It assumes you already have a PHP project with Composer and Pest 5 installed.
 
 ## Requirements
 
@@ -9,50 +11,73 @@ description: Install Pest Flow and write your first behaviour scenario.
 - Pest 5
 - Composer
 
-## Install
+Pest Flow is not currently published on Packagist. Until it is, Composer needs the GitHub repository as a VCS source.
 
-Pest Flow is not yet listed on Packagist. Until it is, add the public GitHub repository as a Composer VCS source and require its main branch:
+## Install from GitHub
+
+Run these commands from your application directory:
 
 ~~~sh
 composer config repositories.pest-flow vcs https://github.com/Maxiviper117/pest-flow
 composer require --dev pest-flow/pest-flow:dev-main
 ~~~
 
-When installing a tagged release that includes this DSL, use its version constraint instead of dev-main.
+Composer records the repository in your `composer.json` and installs Pest Flow as a development dependency. The package loads its DSL functions through Composer's file autoloading; you do not need to add a Pest plugin bootstrap file.
 
-## Write a scenario
+:::tip[When Pest Flow has a stable release]
+Replace `dev-main` with the released version constraint recommended by the release notes. Keep Pest Flow in `require-dev` because its DSL is for writing tests.
+:::
 
-Import the functions in a Pest test file, then describe the behaviour:
+## Write your first scenario
+
+Create `tests/Feature/CheckoutFlowTest.php`:
 
 ~~~php
 <?php
 
 use function Pest\Flow\{feature, rule, scenario, given, when, then};
 
-feature('Calculator', function (): void {
-    rule('Addition returns the sum', function (): void {
-        scenario('Add two numbers', function (): void {
-            given('two numbers', function (): void {
-                $this->left = 2;
-                $this->right = 3;
+feature('Checkout', function (): void {
+    rule('Discounts reduce the order total', function (): void {
+        scenario('Applies a fixed discount', function (): void {
+            given('an order worth 120 dollars', function (): void {
+                $this->subtotal = 120;
             });
 
-            when('they are added', function (): void {
-                $this->result = $this->left + $this->right;
+            when('a discount of 12 dollars is applied', function (): void {
+                $this->total = $this->subtotal - 12;
             });
 
-            then('the sum is five', function (): void {
-                expect($this->result)->toBe(5);
+            then('the total is 108 dollars', function (): void {
+                expect($this->total)->toBe(108);
             });
         });
     });
 });
 ~~~
 
-Save the example in a test file such as tests/Feature/CalculatorFlowTest.php and run it with Pest:
+The nesting gives the test a clear business context:
+
+- `feature()` groups tests for a capability.
+- `rule()` groups scenarios that express a business rule.
+- `scenario()` registers a normal Pest test.
+- `given()`, `when()`, and `then()` run their closures in declaration order inside that test.
+
+The closures share Pest's test object. In this example, `$this->subtotal` set in `Given` is available in the later steps. Use non-static closures when accessing `$this`.
+
+## Run the test
 
 ~~~sh
-vendor/bin/pest tests/Feature/CalculatorFlowTest.php
+vendor/bin/pest tests/Feature/CheckoutFlowTest.php
 ~~~
 
-Each scenario is registered as a regular Pest test, so existing Pest configuration and assertions continue to work.
+Pest reports the scenario like any other test. Assertions, lifecycle hooks, and test failures continue to use Pest's normal behavior.
+
+## If something does not work
+
+- **A DSL function is undefined:** check the `use function Pest\Flow\...` import and run `composer install` after adding the dependency.
+- **Composer cannot find the package:** check that the VCS repository was added to the application root and that PHP and Pest meet the requirements.
+- **A `rule()` call is rejected:** place it inside `feature()`.
+- **A step is rejected:** call it inside a `scenario()` definition, not directly in the test file or a feature callback.
+
+See [troubleshooting](./troubleshooting) for the complete list of placement rules and errors. Continue with the [first scenario walkthrough](./walkthroughs/first-scenario) for a full example, or the [DSL reference](./api) for every function.

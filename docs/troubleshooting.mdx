@@ -1,0 +1,70 @@
+---
+title: Troubleshooting
+description: Diagnose installation, declaration, context, and registry timing issues.
+---
+
+## A Pest Flow function is undefined
+
+Import the namespaced function in the test file:
+
+~~~php
+use function Pest\Flow\{feature, rule, scenario, given, when, then};
+~~~
+
+Confirm the package is installed in the project where Pest runs, then run `composer install`. Composer loads Pest Flow's `src/Autoload.php` through the package's `autoload.files` entry. If the dependency was added manually to `composer.json`, run `composer dump-autoload`.
+
+## A declaration throws `LogicException`
+
+Pest Flow checks where each helper is declared. Match the error to the required structure:
+
+| Error message | Fix |
+| --- | --- |
+| `Features cannot be nested.` | Move the inner feature to the top level. Features cannot contain other features. |
+| `rule() must be declared inside feature().` | Declare the rule inside a `feature()` callback. |
+| `Rules cannot be nested.` | Move the inner rule under the feature as a sibling rule. |
+| `scenario() inside a feature() must be declared inside rule().` | Add a `rule()` around the scenario, or move it outside the feature to make it a standalone scenario. |
+| `Given steps must be declared inside scenario().` | Move the `given()` call into a scenario callback. |
+| `When steps must be declared inside scenario().` | Move the `when()` call into a scenario callback. |
+| `Then steps must be declared inside scenario().` | Move the `then()` call into a scenario callback. |
+
+See the [DSL reference](./api) for the complete hierarchy and each function's behavior.
+
+## `$this` is unavailable in a step
+
+Step callbacks are bound to the same Pest test object, but PHP static closures cannot use `$this`. Use a non-static callback when sharing values through the test context:
+
+~~~php
+given('an order', function (): void {
+    $this->total = 100;
+});
+
+then('the total is present', function (): void {
+    expect($this->total)->toBe(100);
+});
+~~~
+
+Feature and rule callbacks declare groups and hooks; set per-test state inside Pest hooks such as `beforeEach()` or inside a step.
+
+## A step is missing from the registry
+
+Feature, rule, and scenario nodes are registered as Pest loads test files. Step nodes are different: Pest Flow records a step when its scenario executes. Before then, `ScenarioNode::steps()` is empty and the step is absent from `FlowRegistry::steps()`.
+
+The registry is static and process-local. Read it in the same PHP process after Pest has loaded the relevant test declarations; it does not combine state from separate commands or parallel workers. See [when registry nodes are available](./registry#when-nodes-are-available).
+
+## IDs have a numeric suffix
+
+IDs must be unique among siblings. If two siblings have the same normalized name, later ones receive suffixes such as `-2` and `-3`. Give scenarios, rules, or steps more specific names when those suffixes make output harder to read. See [runtime identifiers](./registry#runtime-identifiers).
+
+## A later step does not run after a failure
+
+Steps run as ordinary PHP closures in declaration order. If a step throws an exception or a Pest expectation fails, the exception stops the scenario, just as it would in a regular Pest test. Move independent assertions into separate scenarios when they should fail independently.
+
+## Pest reports no scenario
+
+Make sure the file is in a path Pest discovers, or pass the file or directory explicitly:
+
+~~~sh
+vendor/bin/pest tests/Feature/CheckoutFlowTest.php
+~~~
+
+The `scenario()` callback registers a regular Pest test; Pest's own discovery rules still determine whether its PHP file is loaded.

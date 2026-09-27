@@ -27,6 +27,9 @@ final class FlowRegistry
 
     private function __construct() {}
 
+    /**
+     * @internal Registered by Pest Flow when a feature is declared.
+     */
     public static function registerFeature(FeatureNode $feature): void
     {
         if (in_array($feature, self::$features, true)) {
@@ -63,6 +66,9 @@ final class FlowRegistry
         return $rules;
     }
 
+    /**
+     * @internal Registered by Pest Flow when a scenario is declared.
+     */
     public static function registerScenario(ScenarioNode $scenario): void
     {
         if (in_array($scenario, self::$scenarios, true)) {
