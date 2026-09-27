@@ -45,6 +45,10 @@ feature('Calculator', function (): void {
 
 Each scenario is registered as a normal Pest test. Feature and rule declarations use Pest `describe` groups, so their lifecycle hooks continue to apply.
 
+## Examples
+
+See [examples/README.md](examples/README.md) for a runnable contractor activation example that also inspects the behaviour registry.
+
 ## Development
 
 ```sh
