@@ -21,6 +21,10 @@ final class FeatureNode
 
     public function addRule(RuleNode $rule): void
     {
+        if ($rule->feature !== $this) {
+            throw new \LogicException('A rule can only be added to its owning feature.');
+        }
+
         $this->rules[] = $rule;
     }
 

@@ -16,12 +16,22 @@ final readonly class SourceLocation
 
     public static function capture(): self
     {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-        $caller = $trace[2] ?? $trace[1] ?? [];
+        $sourceDirectory = rtrim(str_replace('\\', '/', dirname(__DIR__)), '/').'/';
 
-        return new self(
-            file: $caller['file'] ?? 'unknown',
-            line: $caller['line'] ?? 0,
-        );
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+            if (! isset($frame['file'])) {
+                continue;
+            }
+
+            $file = str_replace('\\', '/', $frame['file']);
+
+            if (str_starts_with($file, $sourceDirectory)) {
+                continue;
+            }
+
+            return new self($frame['file'], $frame['line'] ?? 0);
+        }
+
+        return new self('unknown', 0);
     }
 }
