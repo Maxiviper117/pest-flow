@@ -1,37 +1,87 @@
 ---
 title: Core concepts
-description: How Pest Flow maps behaviour specifications onto Pest tests.
+description: Learn how Pest Flow's feature and scenario DSL maps to Pest tests.
 ---
+
+Pest Flow organizes ordinary Pest tests into a behaviour tree. It does not introduce another test runner or assertion language.
+
+~~~text
+Feature       Pest describe group
+└── Rule      nested Pest describe group
+    └── Scenario  Pest test (it)
+        ├── Given  setup step
+        ├── When   action step
+        └── Then   assertion step
+~~~
 
 ## Feature
 
-A feature names a user-visible capability or domain area, such as account registration or invoice approval. It maps to a Pest describe group.
+A feature names a capability or domain area, such as account registration or contractor activation. `feature()` creates a Pest `describe` group. Use Pest hooks such as `beforeEach()` inside the feature callback to set up state shared by its rules and scenarios.
+
+Features cannot be nested. A feature can contain rules; it cannot contain scenarios directly.
 
 ## Rule
 
-A rule names a business constraint within a feature. It also maps to a Pest describe group, so feature and rule lifecycle hooks continue to apply.
+A rule states a business constraint within a feature. `rule()` creates a nested Pest `describe` group, so Pest's hooks defined in the feature and rule scopes apply to their tests.
+
+A rule must be declared inside a feature. Rules cannot be nested inside other rules.
 
 ## Scenario
 
-A scenario describes one concrete example of a rule. Pest Flow registers it as a normal Pest test with the scenario name.
+A scenario is one concrete example of a rule. `scenario()` registers it as a normal Pest test, with the scenario name as the test description. A scenario inside a feature must be nested inside a rule. A standalone scenario at the top level is also allowed when a feature/rule hierarchy would add no value.
+
+Pest remains responsible for test discovery, execution, hooks, assertions, and reporting. A scenario can use any Pest expectation or PHP code supported by the test environment.
 
 ## Given, When, Then
 
-Steps describe the setup, action, and expected outcome inside a scenario:
+These helpers label the parts of a scenario:
 
-- Given establishes the starting state.
-- When performs the action being described.
-- Then checks the result with ordinary Pest expectations.
+- **Given** establishes the starting state.
+- **When** performs the action under test.
+- **Then** checks the outcome, usually with Pest expectations.
 
-Each step closure runs in declaration order and shares the scenario's Pest test context. Values assigned through $this in one step are available to later steps.
+Each step closure executes immediately when the scenario runs, in the order written. All step closures share the same Pest test object, so values assigned through `$this` in one step are available in the next. If a step throws or an expectation fails, the exception fails the test and later steps do not run.
 
-## Structure and execution
+The labels are conventions, not a validator: Pest Flow does not require exactly one step of each type or enforce a particular Given/When/Then order. It records the type, description, and source location of every step that actually runs.
 
-The DSL groups related tests, but Pest remains responsible for discovery, hooks, assertions, and test results. A feature contains rules, a rule contains scenarios, and a scenario contains its steps. A rule declared outside a feature or a step declared outside a scenario raises a LogicException.
+## Test hooks and context
+
+Because features and rules map to nested Pest `describe` groups, Pest lifecycle hooks belong at the scope where their setup applies:
+
+~~~php
+feature('Contractor activation', function (): void {
+    beforeEach(function (): void {
+        $this->contractor = ['compliant' => true, 'active' => false];
+    });
+
+    rule('Only compliant contractors may activate', function (): void {
+        beforeEach(function (): void {
+            $this->auditLog = [];
+        });
+
+        scenario('Activates a compliant contractor', function (): void {
+            given('a compliant contractor', function (): void {
+                $this->auditLog[] = 'loaded';
+            });
+
+            when('they activate', function (): void {
+                $this->contractor['active'] = true;
+            });
+
+            then('activation is recorded', function (): void {
+                expect($this->contractor['active'])->toBeTrue()
+                    ->and($this->auditLog)->toBe(['loaded']);
+            });
+        });
+    });
+});
+~~~
+
+Use non-static closures for callbacks that need Pest's `$this` context. Pest Flow calls each step closure with the active test object as its context.
 
 ## Behaviour registry
 
-<code>FlowRegistry</code> exposes the behaviour structure to PHP code:
+`FlowRegistry` exposes the declared behaviour tree to PHP:
 
 ~~~php
 use Pest\Flow\FlowRegistry;
@@ -42,12 +92,15 @@ $scenarios = FlowRegistry::scenarios();
 $steps = FlowRegistry::steps();
 ~~~
 
-Each node has an ID derived from its name and position in the hierarchy. For example, a feature named Contractor activation, its rule Compliance rule, and its scenario Activate contractor receive these identifiers:
+Features, rules, and scenarios are registered while Pest loads the test definitions. Step nodes are added when their scenario executes. The registry is process-local and records structure, not test results. Read [the registry reference](./registry) for timing, fields, and identifier rules.
 
-~~~text
-contractor-activation
-contractor-activation/compliance-rule
-contractor-activation/compliance-rule/activate-contractor
-~~~
+## Next steps
 
-Features, rules, and scenarios are registered while Pest loads the test definitions. Step nodes are recorded when their scenario runs, so <code>FlowRegistry::steps()</code> contains steps from scenarios that have executed in the current PHP process. See [the registry reference](./registry) for details.
+<CardGroup cols={2}>
+  <Card title="Complete walkthrough" href="./walkthroughs/first-scenario" icon="footprints">
+    Build a feature test one layer at a time.
+  </Card>
+  <Card title="DSL reference" href="./api" icon="code-xml">
+    See the placement rules and behavior of each function.
+  </Card>
+</CardGroup>

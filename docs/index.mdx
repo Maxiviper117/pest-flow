@@ -1,9 +1,9 @@
 ---
 title: Introduction
-description: Write executable behaviour specifications in native Pest tests.
+description: Write readable Pest tests as executable behaviour specifications.
 ---
 
-Pest Flow is a Pest 5 plugin for describing application behaviour with native PHP tests. It adds a small BDD-style structure around Pest's existing test runner:
+Pest Flow adds a small behaviour-driven vocabulary to ordinary Pest tests. Use it to group a capability into business rules, describe each rule with executable scenarios, and organize setup, actions, and expectations into steps.
 
 ~~~text
 Feature
@@ -14,10 +14,66 @@ Feature
         └── Then
 ~~~
 
-Pest still runs every scenario as a normal test. Pest Flow gives those tests a shared vocabulary and makes their behaviour easier to read in the codebase.
+Pest still discovers and runs each scenario as a normal test. You keep Pest's assertions, lifecycle hooks, test runner, and failure output. Pest Flow records the behaviour structure so PHP code can inspect features, rules, scenarios, steps, stable identifiers, and source locations.
 
-:::note[Current scope]
-The behaviour registry exposes discovered features, rules, and scenarios through FlowRegistry. Steps are recorded as their scenarios run. Execution results, reports, exports, and generated living documentation are planned for later milestones.
+:::note[Current capabilities]
+The current release provides the DSL and an in-memory behaviour registry. Steps are recorded as their scenario executes. Test results, reports, exports, and generated living documentation are not provided yet.
 :::
 
-Start with the [quickstart](./quickstart) or read about [the core concepts](./concepts).
+## Choose a starting point
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" href="./quickstart" icon="rocket">
+    Install Pest Flow and get your first scenario running.
+  </Card>
+  <Card title="Walkthroughs" href="./walkthroughs" icon="book-open">
+    Build a complete feature test and inspect its registry data.
+  </Card>
+  <Card title="DSL reference" href="./api" icon="code-xml">
+    Look up every DSL function, placement rule, and runtime behavior.
+  </Card>
+  <Card title="Registry reference" href="./registry" icon="list-tree">
+    Explore the node types, identifiers, source locations, and timing.
+  </Card>
+</CardGroup>
+
+## How a scenario reads
+
+~~~php
+feature('Checkout', function (): void {
+    rule('Discounts reduce the order total', function (): void {
+        scenario('Applies a fixed discount', function (): void {
+            given('an order worth 120 dollars', function (): void {
+                $this->subtotal = 120;
+            });
+
+            when('a discount of 12 dollars is applied', function (): void {
+                $this->total = $this->subtotal - 12;
+            });
+
+            then('the total is 108 dollars', function (): void {
+                expect($this->total)->toBe(108);
+            });
+        });
+    });
+});
+~~~
+
+Each step runs in order on the same Pest test context. The values set in `Given` are available in `When` and `Then`, and an ordinary Pest expectation determines whether the scenario passes.
+
+## Learn in order
+
+<Steps>
+  <Step title="Install and run a scenario">
+    Follow the [quickstart](./quickstart) to add the package and run a Pest test.
+  </Step>
+  <Step title="Walk through a complete example">
+    The [first scenario walkthrough](./walkthroughs/first-scenario) explains the feature, rule, scenario, and step callbacks line by line.
+  </Step>
+  <Step title="Look up the API">
+    Use the [DSL reference](./api) for function behavior and [core concepts](./concepts) for how Pest Flow fits into Pest.
+  </Step>
+  <Step title="Inspect discovered behavior">
+    Follow the [registry walkthrough](./walkthroughs/inspect-registry) and the [registry reference](./registry).
+  </Step>
+</Steps>

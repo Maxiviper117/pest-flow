@@ -1,11 +1,11 @@
 ---
 title: Behaviour registry
-description: Inspect Pest Flow features, rules, scenarios, and steps from PHP.
+description: Inspect Pest Flow nodes, identifiers, source locations, and runtime timing.
 ---
 
-## Read the registry
+`Pest\Flow\FlowRegistry` exposes the behaviour declarations loaded in the current PHP process. Use it from PHP code when you need to inspect the feature tree or the steps recorded while tests run.
 
-Import <code>FlowRegistry</code> to inspect behaviour nodes discovered by Pest Flow:
+## Read the registry
 
 ~~~php
 use Pest\Flow\FlowRegistry;
@@ -16,29 +16,67 @@ $scenarios = FlowRegistry::scenarios();
 $steps = FlowRegistry::steps();
 ~~~
 
-Each method returns a list in declaration order. The returned nodes expose their <code>id</code> and <code>name</code>. Feature nodes also provide <code>rules()</code>, rule nodes provide <code>scenarios()</code>, and scenario nodes provide <code>steps()</code>.
+Each method returns a list in declaration order:
+
+| Method | Returns | Contents |
+| --- | --- | --- |
+| `features()` | `list<FeatureNode>` | Top-level feature declarations. |
+| `rules()` | `list<RuleNode>` | All rules, flattened in feature and declaration order. |
+| `scenarios()` | `list<ScenarioNode>` | All scenarios, including standalone scenarios. |
+| `steps()` | `list<StepNode>` | Steps recorded so far for scenarios that have executed. |
+
+You can also walk the tree from a feature: `FeatureNode::rules()`, `RuleNode::scenarios()`, and `ScenarioNode::steps()` return each node's children.
+
+## Node fields
+
+The node objects expose their data as public properties:
+
+| Node | Properties | Child access |
+| --- | --- | --- |
+| `FeatureNode` | `id: string`, `name: string`, `source: SourceLocation` | `rules(): list<RuleNode>` |
+| `RuleNode` | `id: string`, `name: string`, `source: SourceLocation`, `feature: FeatureNode` | `scenarios(): list<ScenarioNode>` |
+| `ScenarioNode` | `id: string`, `name: string`, `source: SourceLocation`, `rule: ?RuleNode` | `steps(): list<StepNode>` |
+| `StepNode` | `id: string`, `type: StepType`, `description: string`, `source: SourceLocation` | None |
+
+`SourceLocation` provides `file: string` and `line: int` for the DSL declaration. For a feature, rule, or scenario, that is where its helper was called. For a step, it is the line where `given()`, `when()`, or `then()` was called.
+
+`StepType` is a backed enum with `Given`, `When`, and `Then` cases. Its string values are `given`, `when`, and `then`.
 
 ## Runtime identifiers
 
-Identifiers are derived from node names and their place in the behaviour tree. ASCII letters are lowercased; runs of non-ASCII characters and punctuation become hyphens:
+Each node gets a path-like ID built from its name and its parent. For example:
 
 ~~~text
 Feature:  Contractor activation
-Rule:     Compliance rule
-Scenario: Activate contractor
+Rule:     Only compliant contractors may activate
+Scenario: Activates a compliant contractor
 
-IDs:
 contractor-activation
-contractor-activation/compliance-rule
-contractor-activation/compliance-rule/activate-contractor
+contractor-activation/only-compliant-contractors-may-activate
+contractor-activation/only-compliant-contractors-may-activate/activates-a-compliant-contractor
 ~~~
 
-If sibling nodes produce the same identifier, Pest Flow adds a numeric suffix such as <code>-2</code> to keep the identifiers distinct. The same declarations in the same order produce the same identifiers between runs.
+The ID slug lowercases ASCII letters, replaces each run of characters other than `a-z` and `0-9` with a hyphen, then trims hyphens from the ends. A name with no ASCII letters or digits uses `node-` followed by the first 12 characters of its SHA-256 hash.
 
-If a name contains no ASCII letters or digits, Pest Flow uses a deterministic short hash for its identifier.
+If sibling nodes produce the same ID, Pest Flow appends `-2`, `-3`, and so on to keep each sibling unique. For example, two rules named `Can activate` under one feature receive `can-activate` and `can-activate-2`. Suffixes depend on declaration order. The same names declared in the same order produce the same IDs between runs.
+
+Standalone scenarios have no feature or rule parent, so their IDs are based on the scenario name at the root.
 
 ## When nodes are available
 
-Pest Flow registers features, rules, and scenarios while Pest loads test definitions. Step definitions are inside the scenario's test closure, so they are recorded as the scenario runs. Before a scenario has run, its <code>steps()</code> list is empty and its steps are not included in <code>FlowRegistry::steps()</code>.
+Feature, rule, and scenario nodes are registered as Pest loads the test definitions. Step callbacks are part of a test's execution, so step nodes do not exist until their scenario runs.
 
-Pest remains responsible for test execution and results. The registry describes the behaviour structure; execution states and reports are planned for later milestones.
+~~~php
+// During test collection, a declared scenario is already in the registry.
+$scenario = FlowRegistry::scenarios()[0];
+$scenario->steps(); // empty until this scenario executes
+
+// Inside a Then step, the current scenario's steps have been recorded.
+FlowRegistry::steps();
+~~~
+
+`FlowRegistry::steps()` aggregates recorded steps by scenario declaration order, with each scenario's steps in execution order. If a scenario runs more than once in the same process, its previous step list is cleared before the next run. If a step throws, steps recorded before the failure remain visible for that run; later steps are not recorded.
+
+The registry is static and process-local. It does not aggregate data across separate PHP processes, store pass/fail results, or provide a reset/reporting API. Parallel test workers therefore have separate registry state.
+
+For a live example that inspects IDs and steps from a test, follow [the registry walkthrough](./walkthroughs/inspect-registry). See the [DSL reference](./api) for how declarations are created.

@@ -1,0 +1,92 @@
+---
+title: DSL and API reference
+description: Function signatures, declaration rules, Pest context, and errors for Pest Flow.
+---
+
+Pest Flow's public DSL is six namespaced PHP functions. Import the functions you use into a Pest test file:
+
+~~~php
+use function Pest\Flow\feature;
+use function Pest\Flow\rule;
+use function Pest\Flow\scenario;
+use function Pest\Flow\given;
+use function Pest\Flow\when;
+use function Pest\Flow\then;
+~~~
+
+Composer loads the function definitions from the package automatically. The `use function` statements make their names available in this file.
+
+## Functions
+
+All callbacks must be PHP `Closure` instances. Each function returns `void`.
+
+| Function | Signature | Pest behavior |
+| --- | --- | --- |
+| `feature()` | `feature(string $name, Closure $definition): void` | Declares a top-level `describe` group. |
+| `rule()` | `rule(string $name, Closure $definition): void` | Declares a `describe` group inside the active feature. |
+| `scenario()` | `scenario(string $name, Closure $definition): void` | Registers a normal Pest test using `$name` as its description. |
+| `given()` | `given(string $description, Closure $definition): void` | Records and executes a `Given` step. |
+| `when()` | `when(string $description, Closure $definition): void` | Records and executes a `When` step. |
+| `then()` | `then(string $description, Closure $definition): void` | Records and executes a `Then` step. |
+
+## Declaration rules
+
+~~~text
+feature()
+└── rule()
+    └── scenario()
+        ├── given()
+        ├── when()
+        └── then()
+~~~
+
+- Features cannot be nested inside features.
+- A rule must be declared inside a feature; rules cannot be nested.
+- A scenario inside a feature must be inside a rule. A scenario declared outside all features is allowed as a standalone Pest test.
+- Every step helper must be called while a scenario is executing.
+- Steps run in the order the helper calls appear. The Given/When/Then types are labels; Pest Flow does not enforce a count or sequence.
+
+## Callback timing and `$this`
+
+`feature()` and `rule()` build Pest `describe` groups while the test file is loaded. Their callbacks are for declarations such as nested rules, scenarios, and Pest hooks; they are not themselves scenario test callbacks.
+
+`scenario()` registers a Pest test. When that test executes, Pest Flow calls the scenario callback and each step callback with the same Pest test object as `$this`:
+
+~~~php
+scenario('adds two numbers', function (): void {
+    given('two numbers', function (): void {
+        $this->left = 2;
+        $this->right = 3;
+    });
+
+    when('they are added', function (): void {
+        $this->result = $this->left + $this->right;
+    });
+
+    then('the sum is five', function (): void {
+        expect($this->result)->toBe(5);
+    });
+});
+~~~
+
+Use non-static closures when the callback needs `$this`. Step closures execute immediately in order; if one throws or an expectation fails, the scenario fails and subsequent steps do not run.
+
+## Placement errors
+
+Invalid declarations throw `LogicException` with a message explaining the required placement:
+
+| Call | Error |
+| --- | --- |
+| Nest `feature()` inside another feature | `Features cannot be nested.` |
+| Call `rule()` without an active feature | `rule() must be declared inside feature().` |
+| Nest `rule()` inside another rule | `Rules cannot be nested.` |
+| Call `scenario()` directly inside a feature | `scenario() inside a feature() must be declared inside rule().` |
+| Call `given()` outside a scenario | `Given steps must be declared inside scenario().` |
+| Call `when()` outside a scenario | `When steps must be declared inside scenario().` |
+| Call `then()` outside a scenario | `Then steps must be declared inside scenario().` |
+
+Pest Flow does not catch exceptions from step code. A thrown exception is handled by Pest as a test failure.
+
+## Registry API
+
+Use `Pest\Flow\FlowRegistry` to inspect registered features, rules, scenarios, and executed steps. See [the registry reference](./registry) for method returns, node fields, identifier rules, and when data becomes available. Follow [the registry walkthrough](./walkthroughs/inspect-registry) for an end-to-end example.

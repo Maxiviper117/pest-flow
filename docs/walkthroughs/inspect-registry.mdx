@@ -1,0 +1,82 @@
+---
+title: Inspect the behaviour registry
+description: Walk from a feature to its scenarios and inspect IDs, steps, and source locations.
+---
+
+This walkthrough reads the data Pest Flow records for the [contractor activation example](./first-scenario). The registry is useful for tooling or assertions about declared behavior; it does not store pass/fail results.
+
+## 1. Read a feature tree
+
+Import `FlowRegistry`, then walk from a feature to its children:
+
+~~~php
+use Pest\Flow\FlowRegistry;
+
+$feature = FlowRegistry::features()[0];
+$rule = $feature->rules()[0];
+$scenario = $rule->scenarios()[0];
+~~~
+
+This indexed example assumes the file contains one feature, one rule, and one scenario. In a larger suite, iterate the returned lists and select nodes by their names or IDs instead of relying on `[0]`.
+
+## 2. Read stable IDs
+
+Every node has an `id` derived from its name and its parent path:
+
+~~~php
+expect($feature->id)->toBe('contractor-activation')
+    ->and($rule->id)->toBe('contractor-activation/only-compliant-contractors-may-activate')
+    ->and($scenario->id)->toBe('contractor-activation/only-compliant-contractors-may-activate/activates-a-compliant-contractor');
+~~~
+
+IDs are useful for matching nodes in tooling. Duplicate sibling names receive numeric suffixes, so changing declaration order can change the suffix assigned to a duplicate. See [identifier generation](../registry#runtime-identifiers) before treating these IDs as permanent external keys.
+
+## 3. Inspect executed steps
+
+Step definitions execute with their scenario, so inspect them from inside that scenario—for example, in a `Then` callback:
+
+~~~php
+use Pest\Flow\FlowRegistry;
+use Pest\Flow\Model\StepNode;
+use function Pest\Flow\then;
+
+then('activation is recorded', function (): void {
+    $scenario = FlowRegistry::scenarios()[0];
+
+    $stepSummary = array_map(
+        static fn (StepNode $step): array => [
+            'id' => $step->id,
+            'type' => $step->type->value,
+            'description' => $step->description,
+            'file' => $step->source->file,
+            'line' => $step->source->line,
+        ],
+        $scenario->steps(),
+    );
+
+    expect($stepSummary)->toHaveCount(3);
+});
+~~~
+
+The first step is not added to the registry during test collection. It appears when Pest executes the scenario. The step's `type` is a `StepType` enum; `->value` returns `given`, `when`, or `then`.
+
+## 4. Read source locations
+
+Each node has a `source` object with `file` and `line` properties. These values point to where its DSL function was called:
+
+~~~php
+$scenario->source->file; // the Pest test file
+$scenario->source->line; // the line that called scenario(...)
+~~~
+
+Step source locations point to the line that called the step helper, which can help tools link registry data back to source code.
+
+## Collection and execution timing
+
+- `features()`, `rules()`, and `scenarios()` contain declarations Pest has loaded in the current PHP process.
+- `steps()` contains step calls that have run so far. It is not a list of every step in the suite before tests execute.
+- A scenario's step list is cleared at the beginning of each execution, then rebuilt as its callbacks run.
+- If a step throws, earlier recorded steps remain available; later steps do not run.
+- The registry is process-local. Separate test processes and parallel workers do not share one registry.
+
+See the [registry reference](../registry) for every method and node field, or the [API reference](../api) for declaration rules.
