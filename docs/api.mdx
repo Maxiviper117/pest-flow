@@ -50,7 +50,7 @@ feature()
 
 `feature()` and `rule()` build Pest `describe` groups while the test file is loaded. Their callbacks are for declarations such as nested rules, scenarios, and Pest hooks; they are not themselves scenario test callbacks.
 
-`scenario()` registers a Pest test. When that test executes, Pest Flow calls the scenario callback and each step callback with the same Pest test object as `$this`:
+`scenario()` registers a Pest test. When that test executes, Pest Flow calls the scenario callback once to collect the step declarations. It then executes each step callback in declaration order. The scenario and step callbacks use the same Pest test object as `$this`:
 
 ~~~php
 scenario('adds two numbers', function (): void {
@@ -69,7 +69,7 @@ scenario('adds two numbers', function (): void {
 });
 ~~~
 
-Use non-static closures when the callback needs `$this`. Step closures execute immediately in order; if one throws or an expectation fails, the scenario fails and subsequent steps do not run.
+Use non-static closures when the callback needs `$this`. Keep the scenario callback focused on declaring steps: statements outside step closures run during collection, before any step closure executes. If a step closure throws or an expectation fails, Pest Flow records the exception, marks later declared steps as skipped, and rethrows the original exception to Pest. Pest still reports the scenario as failed.
 
 ## Placement errors
 
@@ -85,7 +85,7 @@ Invalid declarations throw `LogicException` with a message explaining the requir
 | Call `when()` outside a scenario | `When steps must be declared inside scenario().` |
 | Call `then()` outside a scenario | `Then steps must be declared inside scenario().` |
 
-Pest Flow does not catch exceptions from step code. A thrown exception is handled by Pest as a test failure.
+Pest Flow captures exceptions from step code in the execution metadata, then rethrows the same exception so Pest handles the test result normally. A Pest skip exception marks the current and remaining steps as skipped.
 
 ## Registry API
 

@@ -48,6 +48,9 @@ then('activation is recorded', function (): void {
             'id' => $step->id,
             'type' => $step->type->value,
             'description' => $step->description,
+            'status' => $step->status->value,
+            'duration' => $step->duration,
+            'exception' => $step->exception?->getMessage(),
             'file' => $step->source->file,
             'line' => $step->source->line,
         ],
@@ -58,7 +61,7 @@ then('activation is recorded', function (): void {
 });
 ~~~
 
-The first step is not added to the registry during test collection. It appears when Pest executes the scenario. The step's `type` is a `StepType` enum; `->value` returns `given`, `when`, or `then`.
+Step nodes are added when Pest enters the scenario and collects its declarations, before it executes their callbacks. In this `Then` callback, earlier steps have completed and the current step is still `running`; after the scenario finishes, each node has its final status and duration. The step's `type` is a `StepType` enum; `->value` returns `given`, `when`, or `then`.
 
 ## 4. Read source locations
 
