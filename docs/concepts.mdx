@@ -28,3 +28,26 @@ Each step closure runs in declaration order and shares the scenario's Pest test 
 ## Structure and execution
 
 The DSL groups related tests, but Pest remains responsible for discovery, hooks, assertions, and test results. A feature contains rules, a rule contains scenarios, and a scenario contains its steps. A rule declared outside a feature or a step declared outside a scenario raises a LogicException.
+
+## Behaviour registry
+
+<code>FlowRegistry</code> exposes the behaviour structure to PHP code:
+
+~~~php
+use Pest\Flow\FlowRegistry;
+
+$features = FlowRegistry::features();
+$rules = FlowRegistry::rules();
+$scenarios = FlowRegistry::scenarios();
+$steps = FlowRegistry::steps();
+~~~
+
+Each node has an ID derived from its name and position in the hierarchy. For example, a feature named Contractor activation, its rule Compliance rule, and its scenario Activate contractor receive these identifiers:
+
+~~~text
+contractor-activation
+contractor-activation/compliance-rule
+contractor-activation/compliance-rule/activate-contractor
+~~~
+
+Features, rules, and scenarios are registered while Pest loads the test definitions. Step nodes are recorded when their scenario runs, so <code>FlowRegistry::steps()</code> contains steps from scenarios that have executed in the current PHP process. See [the registry reference](./registry) for details.

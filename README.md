@@ -2,7 +2,7 @@
 
 Pest Flow is a Pest 5 plugin for writing executable behaviour specifications in PHP. Its planned `Feature → Rule → Scenario → Given/When/Then` API and MVP are described in [the PRD](docs/PRD.md).
 
-The core DSL from Milestone 1 is implemented. The behaviour registry, execution reporting, JSON export, and living documentation described in later PRD milestones are still planned.
+The core DSL and behaviour registry from Milestones 1 and 2 are implemented. FlowRegistry exposes discovered features, rules, and scenarios; steps are recorded as scenarios run. Execution reporting, JSON export, and living documentation are planned for later milestones.
 
 ## Requirements
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pest\Flow\Model;
 
 /**
- * @internal
+ * A feature node in the discovered behaviour registry.
  */
 final class FeatureNode
 {

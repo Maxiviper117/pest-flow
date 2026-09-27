@@ -1,0 +1,44 @@
+---
+title: Behaviour registry
+description: Inspect Pest Flow features, rules, scenarios, and steps from PHP.
+---
+
+## Read the registry
+
+Import <code>FlowRegistry</code> to inspect behaviour nodes discovered by Pest Flow:
+
+~~~php
+use Pest\Flow\FlowRegistry;
+
+$features = FlowRegistry::features();
+$rules = FlowRegistry::rules();
+$scenarios = FlowRegistry::scenarios();
+$steps = FlowRegistry::steps();
+~~~
+
+Each method returns a list in declaration order. The returned nodes expose their <code>id</code> and <code>name</code>. Feature nodes also provide <code>rules()</code>, rule nodes provide <code>scenarios()</code>, and scenario nodes provide <code>steps()</code>.
+
+## Runtime identifiers
+
+Identifiers are derived from node names and their place in the behaviour tree. ASCII letters are lowercased; runs of non-ASCII characters and punctuation become hyphens:
+
+~~~text
+Feature:  Contractor activation
+Rule:     Compliance rule
+Scenario: Activate contractor
+
+IDs:
+contractor-activation
+contractor-activation/compliance-rule
+contractor-activation/compliance-rule/activate-contractor
+~~~
+
+If sibling nodes produce the same identifier, Pest Flow adds a numeric suffix such as <code>-2</code> to keep the identifiers distinct. The same declarations in the same order produce the same identifiers between runs.
+
+If a name contains no ASCII letters or digits, Pest Flow uses a deterministic short hash for its identifier.
+
+## When nodes are available
+
+Pest Flow registers features, rules, and scenarios while Pest loads test definitions. Step definitions are inside the scenario's test closure, so they are recorded as the scenario runs. Before a scenario has run, its <code>steps()</code> list is empty and its steps are not included in <code>FlowRegistry::steps()</code>.
+
+Pest remains responsible for test execution and results. The registry describes the behaviour structure; execution states and reports are planned for later milestones.
