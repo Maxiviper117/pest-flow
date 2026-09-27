@@ -33,7 +33,19 @@ feature('Contractor activation', function (): void {
             then('activation is recorded', function (): void {
                 expect($this->contractor['active'])->toBeTrue();
 
-                $feature = FlowRegistry::features()[0];
+                $feature = null;
+
+                foreach (FlowRegistry::features() as $registeredFeature) {
+                    if ($registeredFeature->name === 'Contractor activation') {
+                        $feature = $registeredFeature;
+                        break;
+                    }
+                }
+
+                if ($feature === null) {
+                    throw new LogicException('The contractor activation feature was not registered.');
+                }
+
                 $rule = $feature->rules()[0];
                 $scenario = $rule->scenarios()[0];
 

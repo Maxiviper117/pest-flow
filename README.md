@@ -47,7 +47,7 @@ Each scenario is registered as a normal Pest test. Feature and rule declarations
 
 ## Examples
 
-See [examples/README.md](examples/README.md) for a runnable contractor activation example that also inspects the behaviour registry.
+See [examples/README.md](examples/README.md) for runnable examples covering the full DSL, multiple business rules, Pest lifecycle hooks, standalone scenarios, and execution metadata.
 
 ## Development
 
