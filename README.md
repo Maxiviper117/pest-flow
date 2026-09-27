@@ -64,5 +64,5 @@ The package stays below `1.0.0` until the project deliberately moves to v1. Befo
 
 ## Documentation
 
-Read the [Pest Flow documentation](https://maxiviper117.github.io/pest-flow/). Run npm install and npm run dev to work on the site locally; create a production build with npm run build.
+Read the [Pest Flow documentation](https://maxiviper117.github.io/pest-flow/). Run `pnpm install` and `pnpm run dev` to work on the site locally; create a production build with `pnpm run build`.
 The documentation site requires Node.js 22.12 or newer.

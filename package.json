@@ -2,6 +2,7 @@
   "name": "pest-flow-docs",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.4.2",
   "scripts": {
     "dev": "blume dev",
     "build": "blume build",
@@ -9,9 +10,6 @@
   },
   "dependencies": {
     "blume": "^2.0.3"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
   },
   "engines": {
     "node": ">=22.12.0"
