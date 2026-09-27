@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pest\Flow\Model\ExecutionStatus;
 use Pest\Flow\Model\FeatureNode;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -112,7 +113,7 @@ it('captures the source call site', function (): void {
         ->and($source->line)->toBe($expectedLine);
 });
 
-it('propagates a failing step and skips later steps', function (): void {
+it('propagates a failing step and marks later steps as skipped', function (): void {
     $scenario = new ScenarioNode('fails on a step', new SourceLocation('feature.php', 4));
     $laterStepRan = false;
     $definition = function () use (&$laterStepRan): void {
@@ -129,7 +130,12 @@ it('propagates a failing step and skips later steps', function (): void {
         ->toThrow(RuntimeException::class, 'step failed');
 
     expect($laterStepRan)->toBeFalse()
-        ->and($scenario->steps())->toHaveCount(1);
+        ->and($scenario->status)->toBe(ExecutionStatus::Failed)
+        ->and($scenario->exception)->toBeInstanceOf(RuntimeException::class)
+        ->and($scenario->steps())->toHaveCount(2)
+        ->and($scenario->steps()[0]->status)->toBe(ExecutionStatus::Failed)
+        ->and($scenario->steps()[0]->exception)->toBeInstanceOf(RuntimeException::class)
+        ->and($scenario->steps()[1]->status)->toBe(ExecutionStatus::Skipped);
 
     expect(fn () => given('outside a scenario', fn () => null))
         ->toThrow(LogicException::class, 'Given steps must be declared inside scenario().');
