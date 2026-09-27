@@ -1,0 +1,11 @@
+.idea/
+.phpunit.cache/
+.phpunit.result.cache
+.phpstan/
+.php-cs-fixer.cache
+/.rector-cache/
+/coverage.xml
+/vendor/
+composer.lock
+*.swp
+*.swo
