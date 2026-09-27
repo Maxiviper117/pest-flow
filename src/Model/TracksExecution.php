@@ -53,8 +53,18 @@ trait TracksExecution
 
     private static function executionTime(): float
     {
-        $time = hrtime(true);
+        $time = self::monotonicTime();
 
-        return $time === false ? microtime(true) : $time / 1_000_000_000;
+        return $time === false
+            ? microtime(true)
+            : $time / 1_000_000_000;
+    }
+
+    /**
+     * hrtime() returns false if the platform cannot provide a high-resolution timer.
+     */
+    private static function monotonicTime(): int|float|false
+    {
+        return hrtime(true);
     }
 }
