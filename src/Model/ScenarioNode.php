@@ -17,6 +17,7 @@ final class ScenarioNode
     public function __construct(
         public readonly string $name,
         public readonly SourceLocation $source,
+        public readonly ?RuleNode $rule = null,
     ) {}
 
     public function addStep(StepNode $step): void

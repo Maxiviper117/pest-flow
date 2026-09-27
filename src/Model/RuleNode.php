@@ -17,10 +17,15 @@ final class RuleNode
     public function __construct(
         public readonly string $name,
         public readonly SourceLocation $source,
+        public readonly FeatureNode $feature,
     ) {}
 
     public function addScenario(ScenarioNode $scenario): void
     {
+        if ($scenario->rule !== $this) {
+            throw new \LogicException('A scenario can only be added to its owning rule.');
+        }
+
         $this->scenarios[] = $scenario;
     }
 
