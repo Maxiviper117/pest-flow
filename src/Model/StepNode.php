@@ -17,6 +17,6 @@ final class StepNode
         public readonly SourceLocation $source,
         ?string $id = null,
     ) {
-        $this->id = $id ?? NodeIdentifier::fromName($type->value . '-' . $description);
+        $this->id = $id ?? NodeIdentifier::fromName($type->value.'-'.$description);
     }
 }

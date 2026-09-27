@@ -70,9 +70,11 @@ final class FlowRegistry
         }
 
         if ($scenario->rule === null) {
-            $rootScenarios = array_filter(
-                self::$scenarios,
-                static fn (ScenarioNode $registered): bool => $registered->rule === null,
+            $rootScenarios = array_values(
+                array_filter(
+                    self::$scenarios,
+                    static fn (ScenarioNode $registered): bool => $registered->rule === null,
+                ),
             );
 
             $scenario->id = NodeIdentifier::unique(

@@ -30,7 +30,7 @@ final class ScenarioNode
     {
         $step->id = NodeIdentifier::child(
             $this->id,
-            $step->type->value . '-' . $step->description,
+            $step->type->value.'-'.$step->description,
             array_map(static fn (StepNode $existing): string => $existing->id, $this->steps),
         );
 
