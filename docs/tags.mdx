@@ -1,0 +1,68 @@
+---
+title: Tags and filtering
+description: Label behaviour nodes and filter scenarios with Pest groups.
+---
+
+Add tags to a feature, rule, or scenario with the fluent `tags()` method:
+
+~~~php
+feature('Checkout', function (): void {
+    rule('Payment', function (): void {
+        scenario('charges a customer', function (): void {
+            given('a saved payment method', function (): void {
+                $this->payment = ['status' => 'ready'];
+            });
+
+            when('the charge is submitted', function (): void {
+                $this->payment['status'] = 'charged';
+            });
+
+            then('the charge succeeds', function (): void {
+                expect($this->payment['status'])->toBe('charged');
+            });
+        })->tags('payments', 'critical');
+    })->tags('billing');
+})->tags('checkout');
+~~~
+
+Tags are trimmed, kept in declaration order, and deduplicated on each node. Empty tags and commas
+are rejected. A feature's or rule's tags are inherited by its scenarios for filtering. Tags declared
+on a scenario apply only to that scenario.
+
+## Filter with Pest
+
+Pest Flow maps tags to Pest groups. Use Pest's normal group filter:
+
+~~~sh
+vendor/bin/pest --group=payments
+vendor/bin/pest --group=billing
+vendor/bin/pest --group=checkout
+~~~
+
+Each command selects scenarios with that tag, including tags inherited from their feature or rule.
+Pest's `--exclude-group` option can exclude a tag in the same way.
+
+## Inspect tags in JSON
+
+The versioned JSON report includes the tags declared directly on each feature, rule, and scenario:
+
+~~~json
+{
+  "features": [
+    {
+      "tags": ["checkout"],
+      "rules": [
+        {
+          "tags": ["billing"],
+          "scenarios": [
+            { "tags": ["payments", "critical"] }
+          ]
+        }
+      ]
+    }
+  ]
+}
+~~~
+
+Parent tags are not copied into scenario tag arrays. See the [JSON export reference](./json-export)
+for the full schema and [DSL reference](./api) for declaration rules.

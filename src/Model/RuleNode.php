@@ -7,8 +7,10 @@ namespace Pest\Flow\Model;
 /**
  * A rule node in the discovered behaviour registry.
  */
-final class RuleNode
+final class RuleNode implements TaggableNode
 {
+    use HasTags;
+
     /**
      * @var list<ScenarioNode>
      */

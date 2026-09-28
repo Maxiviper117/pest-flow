@@ -68,7 +68,7 @@ final class JsonReporter
             'id' => $feature->id,
             'name' => $feature->name,
             'source' => $this->source($feature->source),
-            'tags' => [],
+            'tags' => $feature->tags(),
             'rules' => array_map(
                 $this->rule(...),
                 $feature->rules(),
@@ -85,7 +85,7 @@ final class JsonReporter
             'id' => $rule->id,
             'name' => $rule->name,
             'source' => $this->source($rule->source),
-            'tags' => [],
+            'tags' => $rule->tags(),
             'scenarios' => array_map(
                 $this->scenario(...),
                 $rule->scenarios(),
@@ -102,7 +102,7 @@ final class JsonReporter
             'id' => $scenario->id,
             'name' => $scenario->name,
             'source' => $this->source($scenario->source),
-            'tags' => [],
+            'tags' => $scenario->tags(),
             'status' => $scenario->status->value,
             'duration' => $scenario->duration,
             'steps' => array_map(

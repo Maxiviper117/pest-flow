@@ -29,16 +29,21 @@ You can also walk the tree from a feature: `FeatureNode::rules()`, `RuleNode::sc
 
 ## Node fields
 
-The node objects expose their data as public properties:
+The node objects expose their data as public properties. Feature, rule, and scenario tags are read
+with `tags()`:
 
 | Node | Properties | Child access |
 | --- | --- | --- |
-| `FeatureNode` | `id: string`, `name: string`, `source: SourceLocation` | `rules(): list<RuleNode>` |
-| `RuleNode` | `id: string`, `name: string`, `source: SourceLocation`, `feature: FeatureNode` | `scenarios(): list<ScenarioNode>` |
-| `ScenarioNode` | `id: string`, `name: string`, `source: SourceLocation`, `rule: ?RuleNode`, `status: ExecutionStatus`, `duration: ?float`, `exception: ?Throwable` | `steps(): list<StepNode>` |
+| `FeatureNode` | `id: string`, `name: string`, `source: SourceLocation`; `tags(): list<string>` | `rules(): list<RuleNode>` |
+| `RuleNode` | `id: string`, `name: string`, `source: SourceLocation`, `feature: FeatureNode`; `tags(): list<string>` | `scenarios(): list<ScenarioNode>` |
+| `ScenarioNode` | `id: string`, `name: string`, `source: SourceLocation`, `rule: ?RuleNode`, `status: ExecutionStatus`, `duration: ?float`, `exception: ?Throwable`; `tags(): list<string>` | `steps(): list<StepNode>` |
 | `StepNode` | `id: string`, `type: StepType`, `description: string`, `source: SourceLocation`, `status: ExecutionStatus`, `duration: ?float`, `exception: ?Throwable` | None |
 
 `SourceLocation` provides `file: string` and `line: int` for the DSL declaration. For a feature, rule, or scenario, that is where its helper was called. For a step, it is the line where `given()`, `when()`, or `then()` was called.
+
+Feature, rule, and scenario tags are available from each node's `tags()` method. The method returns
+tags declared directly on that node; parent tags are inherited by child scenarios for Pest group
+filtering. See [tags and filtering](./tags).
 
 `StepType` is a backed enum with `Given`, `When`, and `Then` cases. Its string values are `given`, `when`, and `then`.
 
