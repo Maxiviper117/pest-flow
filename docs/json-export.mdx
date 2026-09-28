@@ -80,7 +80,8 @@ execution completes. Standalone scenarios use the same fields as nested scenario
 top-level `standalone_scenarios` array.
 
 The status values are `pending`, `running`, `passed`, `failed`, and `skipped`. Schema version 1
-includes tag arrays on features, rules, and scenarios; they are empty until tag support is added in
-Milestone 6.
+includes tag arrays on features, rules, and scenarios. Each array contains tags declared directly
+on that node; tags on parent features and rules are not copied into child scenario arrays. Parent
+tags still apply when filtering via Pest's `--group` option. See [tags and filtering](./tags).
 
 The registry is process-local, so JSON export is unavailable with `--parallel`.

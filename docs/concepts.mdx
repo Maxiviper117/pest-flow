@@ -20,15 +20,23 @@ A feature names a capability or domain area, such as account registration or con
 
 Features cannot be nested. A feature can contain rules; it cannot contain scenarios directly.
 
+Use `->tags(...)` on a feature declaration to label it. Its tags are inherited by descendant
+scenarios for Pest group filtering. See [tags and filtering](./tags).
+
 ## Rule
 
 A rule states a business constraint within a feature. `rule()` creates a nested Pest `describe` group, so Pest's hooks defined in the feature and rule scopes apply to their tests.
 
 A rule must be declared inside a feature. Rules cannot be nested inside other rules.
 
+Use `->tags(...)` on a rule declaration to label it and make the tag available to its scenarios
+when filtering.
+
 ## Scenario
 
 A scenario is one concrete example of a rule. `scenario()` registers it as a normal Pest test, with the scenario name as the test description. A scenario inside a feature must be nested inside a rule. A standalone scenario at the top level is also allowed when a feature/rule hierarchy would add no value.
+
+Use `->tags(...)` after a scenario declaration to label that scenario directly.
 
 Pest remains responsible for test discovery, execution, hooks, assertions, and reporting. A scenario can use any Pest expectation or PHP code supported by the test environment.
 

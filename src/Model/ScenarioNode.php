@@ -7,8 +7,9 @@ namespace Pest\Flow\Model;
 /**
  * A scenario node in the discovered behaviour registry.
  */
-final class ScenarioNode
+final class ScenarioNode implements TaggableNode
 {
+    use HasTags;
     use TracksExecution;
 
     /**

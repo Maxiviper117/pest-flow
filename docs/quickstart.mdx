@@ -98,8 +98,32 @@ vendor/bin/pest --flow-json=flow.json tests/Feature/CheckoutFlowTest.php
 ~~~
 
 The document includes a schema version, the feature and rule hierarchy, standalone scenarios,
-source locations, execution statuses, durations, and tag arrays. Tag arrays remain empty until
-Milestone 6 adds tag support. See the [JSON export reference](./json-export) for the complete schema.
+source locations, execution statuses, durations, and tags declared on each node. See the
+[JSON export reference](./json-export) for the complete schema.
+
+## Tag and filter behaviours
+
+Add tags directly to features, rules, or scenarios:
+
+~~~php
+feature('Checkout', function (): void {
+    rule('Payment', function (): void {
+        scenario('charges a customer', function (): void {
+            // Given / When / Then steps...
+        })->tags('payments', 'critical');
+    })->tags('billing');
+})->tags('checkout');
+~~~
+
+Feature and rule tags are inherited by descendant scenarios for filtering. Pest Flow uses Pest
+groups, so select tagged scenarios with the existing `--group` option:
+
+~~~sh
+vendor/bin/pest --group=payments
+~~~
+
+Each node's JSON `tags` array contains only tags declared directly on that node. See
+[tags and filtering](./tags) for validation rules and more examples.
 
 ## If something does not work
 

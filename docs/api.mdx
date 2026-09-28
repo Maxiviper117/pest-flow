@@ -18,13 +18,14 @@ Composer loads the function definitions from the package automatically. The `use
 
 ## Functions
 
-All callbacks must be PHP `Closure` instances. Each function returns `void`.
+All callbacks must be PHP `Closure` instances. `feature()`, `rule()`, and `scenario()` return
+fluent declaration calls with a `tags(...$tags)` method. The step helpers return `void`.
 
 | Function | Signature | Pest behavior |
 | --- | --- | --- |
-| `feature()` | `feature(string $name, Closure $definition): void` | Declares a top-level `describe` group. |
-| `rule()` | `rule(string $name, Closure $definition): void` | Declares a `describe` group inside the active feature. |
-| `scenario()` | `scenario(string $name, Closure $definition): void` | Registers a normal Pest test using `$name` as its description. |
+| `feature()` | `feature(string $name, Closure $definition): TaggedGroupCall` | Declares a top-level `describe` group; `->tags(...)` tags the feature and its descendant scenarios for filtering. |
+| `rule()` | `rule(string $name, Closure $definition): TaggedGroupCall` | Declares a `describe` group inside the active feature; `->tags(...)` tags the rule and its descendant scenarios for filtering. |
+| `scenario()` | `scenario(string $name, Closure $definition): TaggedScenarioCall` | Registers a normal Pest test using `$name` as its description; `->tags(...)` tags that scenario. |
 | `given()` | `given(string $description, Closure $definition): void` | Records and executes a `Given` step. |
 | `when()` | `when(string $description, Closure $definition): void` | Records and executes a `When` step. |
 | `then()` | `then(string $description, Closure $definition): void` | Records and executes a `Then` step. |

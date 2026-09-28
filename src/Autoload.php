@@ -6,6 +6,8 @@ namespace Pest\Flow;
 
 use Closure;
 use LogicException;
+use Pest\Flow\Dsl\TaggedGroupCall;
+use Pest\Flow\Dsl\TaggedScenarioCall;
 use Pest\Flow\Model\FeatureNode;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -14,7 +16,7 @@ use Pest\Flow\Model\StepType;
 use Pest\Flow\Runtime\FlowContext;
 use Pest\Flow\Runtime\ScenarioRunner;
 
-function feature(string $name, Closure $definition): void
+function feature(string $name, Closure $definition): TaggedGroupCall
 {
     if (FlowContext::currentFeature() instanceof FeatureNode) {
         throw new LogicException('Features cannot be nested.');
@@ -23,12 +25,15 @@ function feature(string $name, Closure $definition): void
     $feature = new FeatureNode($name, SourceLocation::capture());
     FlowRegistry::registerFeature($feature);
 
-    \describe($name, static function () use ($feature, $definition): void {
-        FlowContext::withFeature($feature, $definition);
-    });
+    return new TaggedGroupCall(
+        $feature,
+        \describe($name, static function () use ($feature, $definition): void {
+            FlowContext::withFeature($feature, $definition);
+        }),
+    );
 }
 
-function rule(string $name, Closure $definition): void
+function rule(string $name, Closure $definition): TaggedGroupCall
 {
     $feature = FlowContext::currentFeature();
 
@@ -43,12 +48,15 @@ function rule(string $name, Closure $definition): void
     $rule = new RuleNode($name, SourceLocation::capture(), $feature);
     $feature->addRule($rule);
 
-    \describe($name, static function () use ($rule, $definition): void {
-        FlowContext::withRule($rule, $definition);
-    });
+    return new TaggedGroupCall(
+        $rule,
+        \describe($name, static function () use ($rule, $definition): void {
+            FlowContext::withRule($rule, $definition);
+        }),
+    );
 }
 
-function scenario(string $name, Closure $definition): void
+function scenario(string $name, Closure $definition): TaggedScenarioCall
 {
     $feature = FlowContext::currentFeature();
     $rule = FlowContext::currentRule();
@@ -61,9 +69,17 @@ function scenario(string $name, Closure $definition): void
     $rule?->addScenario($scenario);
     FlowRegistry::registerScenario($scenario);
 
-    \it($name, function () use ($scenario, $definition): void {
+    $testCall = \it($name, function () use ($scenario, $definition): void {
         ScenarioRunner::run($scenario, $this, $definition);
     });
+
+    $inheritedTags = FlowContext::currentTags();
+
+    if ($inheritedTags !== []) {
+        $testCall->group(...$inheritedTags);
+    }
+
+    return new TaggedScenarioCall($scenario, $testCall, $inheritedTags);
 }
 
 function given(string $description, Closure $definition): void

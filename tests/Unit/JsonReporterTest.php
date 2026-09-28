@@ -24,6 +24,10 @@ it('exports the versioned behaviour hierarchy with metadata', function (): void 
     $scenario = new ScenarioNode('Activate a compliant contractor', new SourceLocation('feature.php', 5), $rule);
     $step = new StepNode(StepType::Given, 'a compliant contractor', new SourceLocation('feature.php', 7));
 
+    $feature->addTags('payments');
+    $rule->addTags('critical');
+    $scenario->addTags('urgent');
+
     $feature->addRule($rule);
     $rule->addScenario($scenario);
     $scenario->addStep($step);
@@ -48,15 +52,15 @@ it('exports the versioned behaviour hierarchy with metadata', function (): void 
         ->and($document['standalone_scenarios'])->toBe([])
         ->and($serializedFeature['name'])->toBe('Contractor activation')
         ->and($serializedFeature['source'])->toBe(['file' => 'feature.php', 'line' => 1])
-        ->and($serializedFeature['tags'])->toBe([])
+        ->and($serializedFeature['tags'])->toBe(['payments'])
         ->and($serializedRule['name'])->toBe('Only compliant contractors may activate')
         ->and($serializedRule['source'])->toBe(['file' => 'feature.php', 'line' => 3])
-        ->and($serializedRule['tags'])->toBe([])
+        ->and($serializedRule['tags'])->toBe(['critical'])
         ->and($serializedScenario['name'])->toBe('Activate a compliant contractor')
         ->and($serializedScenario['status'])->toBe(ExecutionStatus::Passed->value)
         ->and($serializedScenario['duration'])->toBeFloat()
         ->and($serializedScenario['source'])->toBe(['file' => 'feature.php', 'line' => 5])
-        ->and($serializedScenario['tags'])->toBe([])
+        ->and($serializedScenario['tags'])->toBe(['urgent'])
         ->and($serializedStep['type'])->toBe(StepType::Given->value)
         ->and($serializedStep['text'])->toBe('a compliant contractor')
         ->and($serializedStep['status'])->toBe(ExecutionStatus::Passed->value)

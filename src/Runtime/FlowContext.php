@@ -38,6 +38,21 @@ final class FlowContext
         return self::$rules === [] ? null : self::$rules[array_key_last(self::$rules)];
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function currentTags(): array
+    {
+        $tags = self::currentFeature()?->tags() ?? [];
+        $rule = self::currentRule();
+
+        if ($rule instanceof RuleNode) {
+            array_push($tags, ...$rule->tags());
+        }
+
+        return array_values(array_unique($tags));
+    }
+
     public static function currentScenario(): ?ScenarioContext
     {
         return self::$scenarios === [] ? null : self::$scenarios[array_key_last(self::$scenarios)];
