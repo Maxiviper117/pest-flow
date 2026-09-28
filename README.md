@@ -20,6 +20,7 @@ business rules to runnable examples, and expose those examples as structured dat
 - [Write a scenario](#write-a-scenario)
 - [How a scenario runs](#how-a-scenario-runs)
 - [Inspect the behaviour registry](#inspect-the-behaviour-registry)
+- [Console output](#console-output)
 - [Failure and skip behaviour](#failure-and-skip-behaviour)
 - [Scope and limitations](#scope-and-limitations)
 - [Examples and documentation](#examples-and-documentation)
@@ -199,15 +200,28 @@ names receive numeric suffixes to keep IDs unique.
 Renaming a node can change its ID. Treat IDs as identifiers for the current behaviour tree, not as
 permanent identifiers across versions.
 
-The registry supports in-process assertions and custom PHP tooling. It is static and process-local.
-It does not combine data across parallel Pest workers or separate test commands. Pest Flow does not
-yet provide a built-in console report, JSON export, or generated living documentation.
+The registry supports in-process assertions and custom PHP tooling. It is static and process-local;
+it does not combine data across separate test commands.
 
 The registry adds structure beyond a scenario title. A tool can follow a Feature to its Rules and
 Scenarios, then inspect their steps, source locations, status, duration, and exceptions.
 This supports focused checks and integrations without parsing the original PHP source.
 
 See the [registry reference](docs/registry.mdx) for all node fields and registry timing.
+
+## Console output
+
+Run Pest with `--flow` to print the registered Feature, Rule, Scenario, and Given/When/Then
+hierarchy after Pest's normal output:
+
+```sh
+vendor/bin/pest --flow
+```
+
+The report marks passed, failed, skipped, pending, and running scenarios and steps. Pest continues to
+run the tests and determine the command's exit status. The report uses the registry in the current
+process, so it does not aggregate results from `--parallel` workers. Status symbols are colored when
+the terminal supports it; color is disabled automatically when output is redirected.
 
 ## Failure and skip behaviour
 
@@ -233,7 +247,7 @@ The current API is deliberately small:
 - A step is part of one Pest test for its scenario. Pest does not report each step as an independent test.
 - Pest Flow does not parse Gherkin or map text labels to reusable step definitions.
 - Registry data exists only in the current PHP process.
-- Console reports, JSON export, tags, generated living documentation, and Laravel-specific
+- JSON export, tags, generated living documentation, and Laravel-specific
   integration are not available yet.
 
 Pest Flow itself does not depend on Laravel. You can use the core package in a Laravel project that
