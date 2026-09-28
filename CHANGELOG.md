@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/Maxiviper117/pest-flow/compare/v0.3.0...v0.4.0) (2026-09-28)
+
+
+### Features
+
+* add optional console flow report ([#18](https://github.com/Maxiviper117/pest-flow/issues/18)) ([a1ab1f4](https://github.com/Maxiviper117/pest-flow/commit/a1ab1f4ebd3ee59816d75aaa375e28e6fb198fb6))
+
 ## [0.3.0](https://github.com/Maxiviper117/pest-flow/compare/v0.2.0...v0.3.0) (2026-09-27)
 
 
