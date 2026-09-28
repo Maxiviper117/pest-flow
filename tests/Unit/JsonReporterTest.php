@@ -11,6 +11,13 @@ use Pest\Flow\Model\StepNode;
 use Pest\Flow\Model\StepType;
 use Pest\Flow\Reporting\JsonReporter;
 
+it('uses two-space indentation', function (): void {
+    $feature = new FeatureNode('example', new SourceLocation('feature.php', 1));
+    $json = (new JsonReporter)->render([$feature], []);
+
+    expect($json)->toContain("  \"features\": [\n    {\n      \"id\": \"example\",");
+});
+
 it('exports the versioned behaviour hierarchy with metadata', function (): void {
     $feature = new FeatureNode('Contractor activation', new SourceLocation('feature.php', 1));
     $rule = new RuleNode('Only compliant contractors may activate', new SourceLocation('feature.php', 3), $feature);

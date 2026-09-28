@@ -26,7 +26,7 @@ final class JsonReporter
      */
     public function render(array $features, array $standaloneScenarios): string
     {
-        return json_encode(
+        $json = json_encode(
             [
                 'schema_version' => self::SCHEMA_VERSION,
                 'features' => array_map(
@@ -43,7 +43,20 @@ final class JsonReporter
                 | JSON_UNESCAPED_UNICODE
                 | JSON_PRESERVE_ZERO_FRACTION
                 | JSON_THROW_ON_ERROR,
-        ).PHP_EOL;
+        );
+
+        // JSON_PRETTY_PRINT uses four spaces; reduce each indentation level to two spaces.
+        $json = preg_replace_callback(
+            '/^(?: {4})+/m',
+            static fn (array $matches): string => str_repeat('  ', intdiv(strlen($matches[0]), 4)),
+            $json,
+        );
+
+        if ($json === null) {
+            throw new JsonException('Unable to format the JSON report.');
+        }
+
+        return $json.PHP_EOL;
     }
 
     /**
