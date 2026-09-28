@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/Maxiviper117/pest-flow/compare/v0.5.0...v0.6.0) (2026-09-28)
+
+
+### Features
+
+* add tags and Pest group filtering ([a4c0935](https://github.com/Maxiviper117/pest-flow/commit/a4c093543b2ba95a9586315adcf849b5f887f54d))
+
 ## [0.5.0](https://github.com/Maxiviper117/pest-flow/compare/v0.4.0...v0.5.0) (2026-09-28)
 
 
