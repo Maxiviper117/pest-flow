@@ -6,7 +6,6 @@ namespace Pest\Flow\Plugins;
 
 use Pest\Contracts\Plugins\AddsOutput;
 use Pest\Contracts\Plugins\HandlesArguments;
-use Pest\Flow\FlowRegistry;
 use Pest\Flow\Reporting\ConsoleReporter;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -56,7 +55,7 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
             $remaining[] = $argument;
         }
 
-        return array_values($remaining);
+        return $remaining;
     }
 
     public function addOutput(int $exitCode): int

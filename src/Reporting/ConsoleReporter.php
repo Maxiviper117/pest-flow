@@ -6,6 +6,7 @@ namespace Pest\Flow\Reporting;
 
 use Pest\Flow\FlowRegistry;
 use Pest\Flow\Model\ExecutionStatus;
+use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
 use Pest\Flow\Model\StepNode;
 
@@ -41,10 +42,10 @@ final class ConsoleReporter
             }
         }
 
-        $standaloneScenarios = array_values(array_filter(
+        $standaloneScenarios = array_filter(
             FlowRegistry::scenarios(),
-            static fn (ScenarioNode $scenario): bool => $scenario->rule === null,
-        ));
+            static fn (ScenarioNode $scenario): bool => ! $scenario->rule instanceof RuleNode,
+        );
 
         foreach ($standaloneScenarios as $index => $scenario) {
             if ($this->lines !== [] || $index > 0) {
