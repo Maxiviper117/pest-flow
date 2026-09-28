@@ -223,6 +223,26 @@ run the tests and determine the command's exit status. The report uses the regis
 process, so it does not aggregate results from `--parallel` workers. Status symbols are colored when
 the terminal supports it; color is disabled automatically when output is redirected.
 
+## JSON export
+
+Use `--flow-json` to write a versioned JSON document to stdout. Pest's normal test output is
+suppressed so stdout contains only JSON:
+
+```sh
+vendor/bin/pest --flow-json
+```
+
+Use `--flow-json=flow.json` to write the report to a file while keeping Pest's normal output:
+
+```sh
+vendor/bin/pest --flow-json=flow.json
+```
+
+Schema version 1 contains feature trees and standalone scenarios, with IDs, source locations,
+execution status, and durations. Tag arrays are present but empty until tag support is added in
+Milestone 6. JSON export is unavailable with `--parallel` because worker registries are process-local.
+See the [JSON export reference](docs/json-export.mdx) for the schema.
+
 ## Failure and skip behaviour
 
 If a step throws an exception or a Pest expectation fails, Pest Flow records the exception and
@@ -247,8 +267,7 @@ The current API is deliberately small:
 - A step is part of one Pest test for its scenario. Pest does not report each step as an independent test.
 - Pest Flow does not parse Gherkin or map text labels to reusable step definitions.
 - Registry data exists only in the current PHP process.
-- JSON export, tags, generated living documentation, and Laravel-specific
-  integration are not available yet.
+- Tags, generated living documentation, and Laravel-specific integration are not available yet.
 
 Pest Flow itself does not depend on Laravel. You can use the core package in a Laravel project that
 uses Pest, but Pest Flow does not provide Laravel-specific helpers.

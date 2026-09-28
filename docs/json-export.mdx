@@ -1,0 +1,86 @@
+---
+title: JSON export
+description: Export a versioned Pest Flow behaviour tree as JSON for external tools.
+---
+
+Use JSON export when a script or another tool needs to inspect Pest Flow behaviour without parsing
+PHP source.
+
+## Choose an output destination
+
+Write only JSON to stdout with `--flow-json`:
+
+~~~sh
+vendor/bin/pest --flow-json
+~~~
+
+Pest's normal test output is suppressed in this mode so stdout remains valid JSON. Pest's test exit
+code is preserved.
+
+Write JSON to a file with `--flow-json=path`:
+
+~~~sh
+vendor/bin/pest --flow-json=build/flow.json
+~~~
+
+Pest's normal output remains enabled when exporting to a file. The path is relative to the current
+working directory unless it is absolute. Its parent directory must already exist.
+
+## Schema version 1
+
+The top-level document contains `schema_version`, `features`, and `standalone_scenarios`:
+
+~~~json
+{
+  "schema_version": 1,
+  "features": [
+    {
+      "id": "contractor-activation",
+      "name": "Contractor activation",
+      "source": { "file": "tests/Feature/ContractorTest.php", "line": 8 },
+      "tags": [],
+      "rules": [
+        {
+          "id": "contractor-activation/only-compliant-contractors-may-activate",
+          "name": "Only compliant contractors may activate",
+          "source": { "file": "tests/Feature/ContractorTest.php", "line": 10 },
+          "tags": [],
+          "scenarios": [
+            {
+              "id": "contractor-activation/only-compliant-contractors-may-activate/activate-a-compliant-contractor",
+              "name": "Activate a compliant contractor",
+              "source": { "file": "tests/Feature/ContractorTest.php", "line": 12 },
+              "tags": [],
+              "status": "passed",
+              "duration": 0.001,
+              "steps": [
+                {
+                  "id": "contractor-activation/only-compliant-contractors-may-activate/activate-a-compliant-contractor/given-a-compliant-contractor",
+                  "type": "given",
+                  "text": "a compliant contractor",
+                  "source": { "file": "tests/Feature/ContractorTest.php", "line": 14 },
+                  "status": "passed",
+                  "duration": 0.0005
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "standalone_scenarios": []
+}
+~~~
+
+Features and rules contain `id`, `name`, `source`, `tags`, and their child nodes. Scenarios also
+contain `status`, `duration`, and `steps`. Steps contain `id`, `type`, `text`, `source`, `status`,
+and `duration`. A source location has a `file` and `line`. Durations are seconds and are `null` until
+execution completes. Standalone scenarios use the same fields as nested scenarios and appear in the
+top-level `standalone_scenarios` array.
+
+The status values are `pending`, `running`, `passed`, `failed`, and `skipped`. Schema version 1
+includes tag arrays on features, rules, and scenarios; they are empty until tag support is added in
+Milestone 6.
+
+The registry is process-local, so JSON export is unavailable with `--parallel`.
