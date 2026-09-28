@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/Maxiviper117/pest-flow/compare/v0.4.0...v0.5.0) (2026-09-28)
+
+
+### Features
+
+* include versioned JSON export in release ([8324712](https://github.com/Maxiviper117/pest-flow/commit/8324712fbe24f6a08da28b2bb36a49786f376c81))
+
 ## [0.4.0](https://github.com/Maxiviper117/pest-flow/compare/v0.3.0...v0.4.0) (2026-09-28)
 
 
