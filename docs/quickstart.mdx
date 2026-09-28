@@ -73,6 +73,15 @@ vendor/bin/pest tests/Feature/CheckoutFlowTest.php
 
 Pest reports the scenario like any other test. Assertions, lifecycle hooks, and test failures continue to use Pest's normal behavior.
 
+To print the Feature, Rule, Scenario, and step hierarchy after the normal Pest output, add `--flow`:
+
+~~~sh
+vendor/bin/pest --flow tests/Feature/CheckoutFlowTest.php
+~~~
+
+Status symbols are colored when the terminal supports it. Color is disabled automatically when
+output is redirected.
+
 ## If something does not work
 
 - **A DSL function is undefined:** check the `use function Pest\Flow\...` import and run `composer install` after adding the dependency.
