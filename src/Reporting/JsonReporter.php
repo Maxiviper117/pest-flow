@@ -16,7 +16,7 @@ use Pest\Flow\Model\StepNode;
  */
 final class JsonReporter
 {
-    private const SCHEMA_VERSION = 1;
+    private const int SCHEMA_VERSION = 1;
 
     /**
      * @param  list<FeatureNode>  $features
