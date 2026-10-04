@@ -11,12 +11,13 @@ use Pest\Flow\FlowRegistry;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
 use Pest\Flow\Reporting\ConsoleReporter;
+use Pest\Flow\Reporting\DocumentationReporter;
 use Pest\Flow\Reporting\JsonReporter;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Adds the optional Pest Flow terminal reports.
+ * Adds the optional Pest Flow reports.
  */
 final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
 {
@@ -25,6 +26,10 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
     private bool $parallel = false;
 
     private bool $jsonEnabled = false;
+
+    private bool $documentationEnabled = false;
+
+    private string $documentationOutputDirectory = 'build/pest-flow';
 
     private bool $jsonOutputToFile = false;
 
@@ -41,6 +46,8 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
         $this->enabled = false;
         $this->parallel = false;
         $this->jsonEnabled = false;
+        $this->documentationEnabled = false;
+        $this->documentationOutputDirectory = 'build/pest-flow';
         $this->jsonOutputToFile = false;
         $this->jsonOutputPath = null;
         $remaining = [];
@@ -62,6 +69,19 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
 
             if (! $afterSeparator && $argument === '--flow') {
                 $this->enabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && $argument === '--flow-report') {
+                $this->documentationEnabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-report=')) {
+                $this->documentationEnabled = true;
+                $this->documentationOutputDirectory = substr($argument, strlen('--flow-report='));
 
                 continue;
             }
@@ -112,10 +132,14 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
     public function addOutput(int $exitCode): int
     {
         if ($this->jsonEnabled) {
-            return $this->addJsonOutput($exitCode);
+            $exitCode = $this->addJsonOutput($exitCode);
         }
 
-        if (! $this->enabled) {
+        if ($this->documentationEnabled) {
+            $exitCode = $this->addDocumentationOutput($exitCode);
+        }
+
+        if ($this->jsonEnabled || ! $this->enabled) {
             return $exitCode;
         }
 
@@ -135,6 +159,70 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
         }
 
         $this->output->writeln(['', $report]);
+
+        return $exitCode;
+    }
+
+    private function addDocumentationOutput(int $exitCode): int
+    {
+        if ($this->parallel) {
+            $this->writeError('Living documentation is unavailable with --parallel because registry data is process-local.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        if ($this->documentationOutputDirectory === '') {
+            $this->writeError('Pass a directory after --flow-report=.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        try {
+            $html = (new DocumentationReporter)->render(
+                FlowRegistry::features(),
+                $this->standaloneScenarios(),
+            );
+        } catch (\Throwable $exception) {
+            $this->writeError('The Pest Flow living documentation could not be rendered: '.$exception->getMessage());
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        $directory = $this->documentationOutputDirectory;
+
+        if (file_exists($directory) && ! is_dir($directory)) {
+            $this->writeError('The Pest Flow documentation output path is not a directory.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        if (! is_dir($directory) && ! @mkdir($directory, 0777, true) && ! is_dir($directory)) {
+            $this->writeError('The Pest Flow documentation output directory could not be created.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        $directory = rtrim($directory, '/\\');
+
+        if ($directory === '') {
+            $directory = DIRECTORY_SEPARATOR;
+        }
+
+        $reportPath = $directory.DIRECTORY_SEPARATOR.'index.html';
+        $bytesWritten = @file_put_contents($reportPath, $html);
+
+        if ($bytesWritten !== strlen($html)) {
+            $this->writeError('The Pest Flow living documentation could not be written to the output directory.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        if (! $this->jsonEnabled || $this->jsonOutputToFile) {
+            $this->output->writeln(
+                'Pest Flow living documentation written to '.$reportPath,
+                OutputInterface::OUTPUT_PLAIN,
+            );
+        }
 
         return $exitCode;
     }
