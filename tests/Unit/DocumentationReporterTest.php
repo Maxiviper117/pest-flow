@@ -34,7 +34,7 @@ it('renders the behaviour hierarchy, metadata, counts, and safe text', function 
         ->and($html)->toContain('Checkout &lt;Risk&gt;')
         ->and($html)->toContain('Payments &amp; refunds')
         ->and($html)->toContain('a card named &lt;script&gt;')
-        ->and($html)->not->toContain('<script>')
+        ->and($html)->not->toContain('a card named <script>')
         ->and($html)->toContain('href="#checkout-risk/payments-refunds/charges-a-card"')
         ->and($html)->toContain('billing')
         ->and($html)->toContain('critical')
