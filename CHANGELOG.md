@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/Maxiviper117/pest-flow/compare/v0.7.1...v0.7.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* use the correct Packagist namespace ([0d62ce0](https://github.com/Maxiviper117/pest-flow/commit/0d62ce012129ca901b964c19b4a7295835bbf72e))
+
 ## [0.7.1](https://github.com/Maxiviper117/pest-flow/compare/v0.7.0...v0.7.1) (2026-10-04)
 
 
