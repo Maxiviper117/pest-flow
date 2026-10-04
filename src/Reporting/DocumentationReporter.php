@@ -86,16 +86,13 @@ final class DocumentationReporter
             $lines[] = '        </section>';
         }
 
-        array_push(
-            $lines,
-            '      </div>',
-            '    </main>',
-            '  </div>',
-            '  <script>'.$this->themeToggle().'</script>',
-            '</body>',
-            '</html>',
-            '',
-        );
+        $lines[] = '      </div>';
+        $lines[] = '    </main>';
+        $lines[] = '  </div>';
+        $lines[] = '  <script>'.$this->themeToggle().'</script>';
+        $lines[] = '</body>';
+        $lines[] = '</html>';
+        $lines[] = '';
 
         return implode(PHP_EOL, $lines);
     }
@@ -144,10 +141,12 @@ final class DocumentationReporter
                 $lines[] = '              <li><a href="#'.$this->escape($scenario->id).'">'.$this->escape($scenario->name).'</a></li>';
             }
 
-            array_push($lines, '            </ul>', '          </li>');
+            $lines[] = '            </ul>';
+            $lines[] = '          </li>';
         }
 
-        array_push($lines, '        </ul>', '      </nav>');
+        $lines[] = '        </ul>';
+        $lines[] = '      </nav>';
 
         return implode(PHP_EOL, $lines);
     }
@@ -174,7 +173,9 @@ final class DocumentationReporter
             $lines[] = '          <div class="status-count status-'.$status->value.'"><dt>'.$this->label($status).'</dt><dd>'.$statuses[$status->value].'</dd></div>';
         }
 
-        array_push($lines, '        </dl>', '        <p class="summary-note">Counts include all loaded scenarios. Steps are counted only after Pest records them.</p>', '      </section>');
+        $lines[] = '        </dl>';
+        $lines[] = '        <p class="summary-note">Counts include all loaded scenarios. Steps are counted only after Pest records them.</p>';
+        $lines[] = '      </section>';
 
         return implode(PHP_EOL, $lines);
     }
@@ -199,7 +200,7 @@ final class DocumentationReporter
             $lines[] = $this->rule($rule);
         }
 
-        array_push($lines, '        </section>');
+        $lines[] = '        </section>';
 
         return implode(PHP_EOL, $lines);
     }
@@ -219,7 +220,7 @@ final class DocumentationReporter
             $lines[] = $this->scenario($scenario, 4);
         }
 
-        array_push($lines, '          </section>');
+        $lines[] = '          </section>';
 
         return implode(PHP_EOL, $lines);
     }
