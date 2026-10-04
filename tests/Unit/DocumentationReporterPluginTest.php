@@ -5,6 +5,48 @@ declare(strict_types=1);
 use Pest\Flow\Plugins\ConsoleReporterPlugin;
 use Symfony\Component\Console\Output\BufferedOutput;
 
+it('writes to the default directory when the report flag has no path', function (): void {
+    $directory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'pest-flow-default-report-'.bin2hex(random_bytes(8));
+    $reportPath = $directory.DIRECTORY_SEPARATOR.'build'.DIRECTORY_SEPARATOR.'pest-flow'.DIRECTORY_SEPARATOR.'index.html';
+    $originalDirectory = getcwd();
+
+    if (! mkdir($directory, 0777, true) && ! is_dir($directory)) {
+        throw new RuntimeException('The default report test directory could not be created.');
+    }
+
+    try {
+        expect(chdir($directory))->toBeTrue();
+
+        $plugin = new ConsoleReporterPlugin(new BufferedOutput);
+
+        expect($plugin->handleArguments(['--flow-report']))
+            ->toBe([])
+            ->and($plugin->addOutput(0))->toBe(0)
+            ->and(is_file($reportPath))->toBeTrue();
+    } finally {
+        chdir($originalDirectory);
+
+        if (is_file($reportPath)) {
+            unlink($reportPath);
+        }
+
+        $reportDirectory = dirname($reportPath);
+        $buildDirectory = dirname($reportDirectory);
+
+        if (is_dir($reportDirectory)) {
+            rmdir($reportDirectory);
+        }
+
+        if (is_dir($buildDirectory)) {
+            rmdir($buildDirectory);
+        }
+
+        if (is_dir($directory)) {
+            rmdir($directory);
+        }
+    }
+});
+
 it('writes a static report to the requested directory and preserves Pest failures', function (): void {
     $directory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'pest-flow-report-'.bin2hex(random_bytes(8));
 
