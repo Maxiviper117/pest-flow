@@ -196,10 +196,20 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
             return $exitCode === 0 ? 1 : $exitCode;
         }
 
-        if (! is_dir($directory) && ! @mkdir($directory, 0777, true) && ! is_dir($directory)) {
-            $this->writeError('The Pest Flow documentation output directory could not be created.');
+        if (! is_dir($directory)) {
+            set_error_handler(static fn (int $severity, string $message, string $file, int $line): bool => true);
 
-            return $exitCode === 0 ? 1 : $exitCode;
+            try {
+                $directoryCreated = mkdir($directory, 0777, true);
+            } finally {
+                restore_error_handler();
+            }
+
+            if (! $directoryCreated && ! is_dir($directory)) {
+                $this->writeError('The Pest Flow documentation output directory could not be created.');
+
+                return $exitCode === 0 ? 1 : $exitCode;
+            }
         }
 
         $directory = rtrim($directory, '/\\');
@@ -209,7 +219,13 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
         }
 
         $reportPath = $directory.DIRECTORY_SEPARATOR.'index.html';
-        $bytesWritten = @file_put_contents($reportPath, $html);
+        set_error_handler(static fn (int $severity, string $message, string $file, int $line): bool => true);
+
+        try {
+            $bytesWritten = file_put_contents($reportPath, $html);
+        } finally {
+            restore_error_handler();
+        }
 
         if ($bytesWritten !== strlen($html)) {
             $this->writeError('The Pest Flow living documentation could not be written to the output directory.');
