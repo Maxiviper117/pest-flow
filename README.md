@@ -91,7 +91,7 @@ dependency:
 
 ```sh
 composer config repositories.pest-flow vcs https://github.com/Maxiviper117/pest-flow
-composer require --dev pest-flow/pest-flow:dev-main
+composer require --dev maxiviper117/pest-flow:dev-main
 ```
 
 Composer loads the Pest Flow functions automatically. You do not need to add a plugin bootstrap
