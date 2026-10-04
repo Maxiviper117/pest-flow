@@ -125,6 +125,25 @@ vendor/bin/pest --group=payments
 Each node's JSON `tags` array contains only tags declared directly on that node. See
 [tags and filtering](./tags) for validation rules and more examples.
 
+## Generate living documentation
+
+After a Pest run, generate a static HTML behaviour catalogue with:
+
+~~~sh
+vendor/bin/pest --flow-report
+~~~
+
+Pest writes `build/pest-flow/index.html`. Pass a directory to use another output location:
+
+~~~sh
+vendor/bin/pest --flow-report=docs/behaviour
+~~~
+
+The report includes navigation, counts, direct tags, source locations, and execution metadata.
+Unselected scenarios in a filtered run remain listed as pending. Their steps may be absent because
+Pest Flow records steps when a scenario runs. See [living documentation](./living-documentation)
+for output details and the parallel execution limitation.
+
 ## If something does not work
 
 - **A DSL function is undefined:** check the `use function Pest\Flow\...` import and run `composer install` after adding the dependency.

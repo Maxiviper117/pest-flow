@@ -14,3 +14,7 @@ node_modules/
 dist/
 .blume-verify/
 /project_docs/PRD.md
+/project_docs/PRD/
+/.local-reports/
+/.agents/
+/.codex/

@@ -1,0 +1,33 @@
+---
+title: Living documentation
+description: Generate a static HTML catalogue of Pest Flow behaviour.
+---
+
+Generate a static HTML catalogue after Pest runs your tests:
+
+~~~sh
+vendor/bin/pest --flow-report
+~~~
+
+Pest writes `build/pest-flow/index.html` by default and creates the output directory when needed.
+Open the file directly in a browser, or publish the directory as a CI artifact or static site.
+The report has no server-side requirements or external asset dependencies.
+
+Pass a directory to choose another output location:
+
+~~~sh
+vendor/bin/pest --flow-report=docs/behaviour
+~~~
+
+The report presents features, rules, scenarios, standalone scenarios, steps recorded in the run,
+direct tags, source file and line values, execution status, and duration when available. It includes
+navigation and suite counts.
+
+Feature, rule, and scenario counts include every behaviour definition loaded by Pest. Step nodes are
+recorded when a scenario runs, so a filtered run can show an unexecuted scenario as `Pending` with
+no recorded steps. The status summary counts scenarios for the current run and includes `Pending`.
+Tags shown on each node are the tags declared directly on that node.
+
+Pest still returns its normal failing exit code when a scenario fails. Pest Flow writes the report
+if report generation succeeds. The process-local registry is unavailable with `--parallel`, so
+living documentation cannot be generated in parallel mode.
