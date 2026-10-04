@@ -3,7 +3,7 @@ title: Quickstart
 description: Install Pest Flow and run your first behaviour scenario with Pest.
 ---
 
-This guide installs Pest Flow from GitHub, adds one feature test, and runs it with Pest. It assumes you already have a PHP project with Composer and Pest 5 installed.
+This guide installs Pest Flow from Packagist, adds one feature test, and runs it with Pest. It assumes you already have a PHP project with Composer and Pest 5 installed.
 
 ## Requirements
 
@@ -11,22 +11,15 @@ This guide installs Pest Flow from GitHub, adds one feature test, and runs it wi
 - Pest 5
 - Composer
 
-Pest Flow is not currently published on Packagist. Until it is, Composer needs the GitHub repository as a VCS source.
+## Install
 
-## Install from GitHub
-
-Run these commands from your application directory:
+Run this command from your application directory:
 
 ~~~sh
-composer config repositories.pest-flow vcs https://github.com/Maxiviper117/pest-flow
-composer require --dev maxiviper117/pest-flow:dev-main
+composer require --dev maxiviper117/pest-flow
 ~~~
 
-Composer records the repository in your `composer.json` and installs Pest Flow as a development dependency. The package loads its DSL functions through Composer's file autoloading; you do not need to add a Pest plugin bootstrap file.
-
-:::tip[When Pest Flow has a stable release]
-Replace `dev-main` with the released version constraint recommended by the release notes. Keep Pest Flow in `require-dev` because its DSL is for writing tests.
-:::
+Composer installs Pest Flow as a development dependency and loads its DSL functions automatically. You do not need to add a Pest plugin bootstrap file.
 
 ## Write your first scenario
 
