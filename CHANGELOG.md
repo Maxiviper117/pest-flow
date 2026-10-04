@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/Maxiviper117/pest-flow/compare/v0.6.0...v0.7.0) (2026-10-04)
+
+
+### Features
+
+* add living documentation reports ([8d2848a](https://github.com/Maxiviper117/pest-flow/commit/8d2848a781758d5a587e0d93d662c17e73c519a7))
+
 ## [0.6.0](https://github.com/Maxiviper117/pest-flow/compare/v0.5.0...v0.6.0) (2026-09-28)
 
 
