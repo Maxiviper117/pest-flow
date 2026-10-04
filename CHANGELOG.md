@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/Maxiviper117/pest-flow/compare/v0.7.0...v0.7.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* configure Rector and PHPStan tooling ([#28](https://github.com/Maxiviper117/pest-flow/issues/28)) ([dab4f7c](https://github.com/Maxiviper117/pest-flow/commit/dab4f7c63cd2a56040967f36b5fde4c108ec2106))
+
 ## [0.7.0](https://github.com/Maxiviper117/pest-flow/compare/v0.6.0...v0.7.0) (2026-10-04)
 
 
