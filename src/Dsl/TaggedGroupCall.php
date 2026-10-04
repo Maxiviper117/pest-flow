@@ -10,11 +10,11 @@ use Pest\PendingCalls\DescribeCall;
 /**
  * Adds tags to a feature or rule declaration.
  */
-final class TaggedGroupCall
+final readonly class TaggedGroupCall
 {
     public function __construct(
-        private readonly TaggableNode $node,
-        private readonly DescribeCall $declaration,
+        private TaggableNode $node,
+        private DescribeCall $declaration,
     ) {}
 
     public function tags(string ...$tags): self

@@ -10,15 +10,15 @@ use Pest\PendingCalls\TestCall;
 /**
  * Adds tags to a scenario and forwards them to Pest's native groups.
  */
-final class TaggedScenarioCall
+final readonly class TaggedScenarioCall
 {
     /**
      * @param  list<string>  $inheritedTags
      */
     public function __construct(
-        private readonly ScenarioNode $scenario,
-        private readonly TestCall $testCall,
-        private readonly array $inheritedTags,
+        private ScenarioNode $scenario,
+        private TestCall $testCall,
+        private array $inheritedTags,
     ) {}
 
     public function tags(string ...$tags): self
