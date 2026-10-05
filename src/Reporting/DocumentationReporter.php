@@ -55,11 +55,11 @@ final class DocumentationReporter
 
         $scenarios = $this->scenarios($features, $standaloneScenarios);
         $ruleCount = array_sum(array_map(
-            static fn (array $feature): int => count($feature['rules'] ?? []),
+            static fn (array $feature): int => count($feature['rules']),
             $features,
         ));
         $stepCount = array_sum(array_map(
-            static fn (array $scenario): int => count($scenario['steps'] ?? []),
+            static fn (array $scenario): int => count($scenario['steps']),
             $scenarios,
         ));
         $statuses = array_fill_keys(array_map(
@@ -562,227 +562,227 @@ CSS;
 
     private function viewerScript(): string
     {
-        return <<<'JS'
-const root = document.documentElement;
-const toggle = document.getElementById('theme-toggle');
-const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-const isDark = () => root.dataset.theme === 'dark' || (!root.dataset.theme && prefersDark.matches);
-const updateTheme = () => toggle.setAttribute('aria-pressed', String(isDark()));
+        return <<<'JS_WRAP'
+        const root = document.documentElement;
+        const toggle = document.getElementById('theme-toggle');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        const isDark = () => root.dataset.theme === 'dark' || (!root.dataset.theme && prefersDark.matches);
+        const updateTheme = () => toggle.setAttribute('aria-pressed', String(isDark()));
 
-updateTheme();
-toggle.addEventListener('click', () => {
-  root.dataset.theme = isDark() ? 'light' : 'dark';
-  updateTheme();
-});
-prefersDark.addEventListener('change', () => {
-  if (!root.dataset.theme) updateTheme();
-});
+        updateTheme();
+        toggle.addEventListener('click', () => {
+          root.dataset.theme = isDark() ? 'light' : 'dark';
+          updateTheme();
+        });
+        prefersDark.addEventListener('change', () => {
+          if (!root.dataset.theme) updateTheme();
+        });
 
-const documentElement = document.getElementById('flow-document');
-const results = document.getElementById('filter-results');
-const controls = {
-  search: document.getElementById('filter-search'),
-  status: document.getElementById('filter-status'),
-  tag: document.getElementById('filter-tag'),
-  feature: document.getElementById('filter-feature'),
-  rule: document.getElementById('filter-rule'),
-  source: document.getElementById('filter-source'),
-};
+        const documentElement = document.getElementById('flow-document');
+        const results = document.getElementById('filter-results');
+        const controls = {
+          search: document.getElementById('filter-search'),
+          status: document.getElementById('filter-status'),
+          tag: document.getElementById('filter-tag'),
+          feature: document.getElementById('filter-feature'),
+          rule: document.getElementById('filter-rule'),
+          source: document.getElementById('filter-source'),
+        };
 
-let behaviourDocument;
-try {
-  behaviourDocument = JSON.parse(documentElement.textContent);
-  if (behaviourDocument.schema_version !== 1) throw new Error('Unsupported schema version.');
-} catch (error) {
-  results.textContent = `The behaviour document could not be loaded: ${error.message}`;
-  throw error;
-}
+        let behaviourDocument;
+        try {
+          behaviourDocument = JSON.parse(documentElement.textContent);
+          if (behaviourDocument.schema_version !== 1) throw new Error('Unsupported schema version.');
+        } catch (error) {
+          results.textContent = `The behaviour document could not be loaded: ${error.message}`;
+          throw error;
+        }
 
-const addOptions = (select, entries) => {
-  for (const [value, label] of entries) {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
-    select.append(option);
-  }
-};
-const tags = new Set();
-const sourceFiles = new Set();
-const metadataByNode = new Map();
-const unique = (values) => [...new Set(values)];
-const sourceOf = (node) => {
-  if (node?.source?.file && node.source.file !== 'unknown') sourceFiles.add(node.source.file);
-};
-const sourceFilesOf = (nodes) => nodes
-  .map((node) => node?.source?.file)
-  .filter((file) => file && file !== 'unknown');
-const statusesOf = (scenarios) => scenarios.flatMap((scenario) => [
-  scenario.status,
-  ...(scenario.steps ?? []).map((step) => step.status),
-]);
-const addNodeMetadata = (target, searchText, nodeTags, nodes, statuses) => {
-  const element = document.getElementById(target);
-  if (!element) return;
-  metadataByNode.set(element, {
-    searchText: searchText.join(' ').toLocaleLowerCase(),
-    tags: unique(nodeTags),
-    sourceFiles: unique(sourceFilesOf(nodes)),
-    statuses: unique(statuses),
-  });
-};
-const scenarioData = (scenario) => {
-  scenario.tags?.forEach((tag) => tags.add(tag));
-  sourceOf(scenario);
-  scenario.steps?.forEach((step) => sourceOf(step));
-};
+        const addOptions = (select, entries) => {
+          for (const [value, label] of entries) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            select.append(option);
+          }
+        };
+        const tags = new Set();
+        const sourceFiles = new Set();
+        const metadataByNode = new Map();
+        const unique = (values) => [...new Set(values)];
+        const sourceOf = (node) => {
+          if (node?.source?.file && node.source.file !== 'unknown') sourceFiles.add(node.source.file);
+        };
+        const sourceFilesOf = (nodes) => nodes
+          .map((node) => node?.source?.file)
+          .filter((file) => file && file !== 'unknown');
+        const statusesOf = (scenarios) => scenarios.flatMap((scenario) => [
+          scenario.status,
+          ...(scenario.steps ?? []).map((step) => step.status),
+        ]);
+        const addNodeMetadata = (target, searchText, nodeTags, nodes, statuses) => {
+          const element = document.getElementById(target);
+          if (!element) return;
+          metadataByNode.set(element, {
+            searchText: searchText.join(' ').toLocaleLowerCase(),
+            tags: unique(nodeTags),
+            sourceFiles: unique(sourceFilesOf(nodes)),
+            statuses: unique(statuses),
+          });
+        };
+        const scenarioData = (scenario) => {
+          scenario.tags?.forEach((tag) => tags.add(tag));
+          sourceOf(scenario);
+          scenario.steps?.forEach((step) => sourceOf(step));
+        };
 
-for (const feature of behaviourDocument.features ?? []) {
-  feature.tags?.forEach((tag) => tags.add(tag));
-  sourceOf(feature);
-  addOptions(controls.feature, [[feature.id, feature.name]]);
-  const featureStatuses = [];
-  for (const rule of feature.rules ?? []) {
-    rule.tags?.forEach((tag) => tags.add(tag));
-    sourceOf(rule);
-    addOptions(controls.rule, [[rule.id, `${feature.name} / ${rule.name}`]]);
-    const ruleStatuses = [];
-    for (const scenario of rule.scenarios ?? []) {
-      scenarioData(scenario);
-      const scenarioStatuses = statusesOf([scenario]);
-      const ancestors = [feature, rule];
-      addNodeMetadata(
-        `scenario-${scenario.id}`,
-        [feature.name, rule.name, scenario.name, ...scenario.tags, ...(scenario.steps ?? []).flatMap((step) => [step.type, step.text])],
-        [...feature.tags, ...rule.tags, ...scenario.tags],
-        [...ancestors, scenario, ...(scenario.steps ?? [])],
-        scenarioStatuses,
-      );
-      ruleStatuses.push(...scenarioStatuses);
-    }
-    featureStatuses.push(...ruleStatuses);
-    addNodeMetadata(
-      `rule-${rule.id}`,
-      [feature.name, rule.name, ...feature.tags, ...rule.tags],
-      [...feature.tags, ...rule.tags],
-      [feature, rule],
-      ruleStatuses,
-    );
-  }
-  addNodeMetadata(`feature-${feature.id}`, [feature.name, ...feature.tags], feature.tags, [feature], featureStatuses);
-}
-for (const scenario of behaviourDocument.standalone_scenarios ?? []) {
-  scenarioData(scenario);
-  addNodeMetadata(
-    `standalone-scenario-${scenario.id}`,
-    [scenario.name, ...scenario.tags, ...(scenario.steps ?? []).flatMap((step) => [step.type, step.text])],
-    scenario.tags,
-    [scenario, ...(scenario.steps ?? [])],
-    statusesOf([scenario]),
-  );
-}
-addOptions(controls.tag, [...tags].sort((a, b) => a.localeCompare(b)).map((tag) => [tag, tag]));
-addOptions(controls.source, [...sourceFiles].sort((a, b) => a.localeCompare(b)).map((file) => [file, file]));
+        for (const feature of behaviourDocument.features ?? []) {
+          feature.tags?.forEach((tag) => tags.add(tag));
+          sourceOf(feature);
+          addOptions(controls.feature, [[feature.id, feature.name]]);
+          const featureStatuses = [];
+          for (const rule of feature.rules ?? []) {
+            rule.tags?.forEach((tag) => tags.add(tag));
+            sourceOf(rule);
+            addOptions(controls.rule, [[rule.id, `${feature.name} / ${rule.name}`]]);
+            const ruleStatuses = [];
+            for (const scenario of rule.scenarios ?? []) {
+              scenarioData(scenario);
+              const scenarioStatuses = statusesOf([scenario]);
+              const ancestors = [feature, rule];
+              addNodeMetadata(
+                `scenario-${scenario.id}`,
+                [feature.name, rule.name, scenario.name, ...scenario.tags, ...(scenario.steps ?? []).flatMap((step) => [step.type, step.text])],
+                [...feature.tags, ...rule.tags, ...scenario.tags],
+                [...ancestors, scenario, ...(scenario.steps ?? [])],
+                scenarioStatuses,
+              );
+              ruleStatuses.push(...scenarioStatuses);
+            }
+            featureStatuses.push(...ruleStatuses);
+            addNodeMetadata(
+              `rule-${rule.id}`,
+              [feature.name, rule.name, ...feature.tags, ...rule.tags],
+              [...feature.tags, ...rule.tags],
+              [feature, rule],
+              ruleStatuses,
+            );
+          }
+          addNodeMetadata(`feature-${feature.id}`, [feature.name, ...feature.tags], feature.tags, [feature], featureStatuses);
+        }
+        for (const scenario of behaviourDocument.standalone_scenarios ?? []) {
+          scenarioData(scenario);
+          addNodeMetadata(
+            `standalone-scenario-${scenario.id}`,
+            [scenario.name, ...scenario.tags, ...(scenario.steps ?? []).flatMap((step) => [step.type, step.text])],
+            scenario.tags,
+            [scenario, ...(scenario.steps ?? [])],
+            statusesOf([scenario]),
+          );
+        }
+        addOptions(controls.tag, [...tags].sort((a, b) => a.localeCompare(b)).map((tag) => [tag, tag]));
+        addOptions(controls.source, [...sourceFiles].sort((a, b) => a.localeCompare(b)).map((file) => [file, file]));
 
-const commonMatch = (element, filters) => {
-  const metadata = metadataByNode.get(element);
-  if (!metadata) return false;
-  const searchMatches = !filters.search || metadata.searchText.includes(filters.search);
-  const statusMatches = !filters.status || metadata.statuses.includes(filters.status);
-  const tagMatches = !filters.tag || metadata.tags.includes(filters.tag);
-  const sourceMatches = !filters.source || metadata.sourceFiles.includes(filters.source);
-  return searchMatches && statusMatches && tagMatches && sourceMatches;
-};
-const applyFilters = () => {
-  const filters = {
-    search: controls.search.value.trim().toLocaleLowerCase(),
-    status: controls.status.value,
-    tag: controls.tag.value,
-    feature: controls.feature.value,
-    rule: controls.rule.value,
-    source: controls.source.value,
-  };
-  const scenarios = [...document.querySelectorAll('.scenario')];
+        const commonMatch = (element, filters) => {
+          const metadata = metadataByNode.get(element);
+          if (!metadata) return false;
+          const searchMatches = !filters.search || metadata.searchText.includes(filters.search);
+          const statusMatches = !filters.status || metadata.statuses.includes(filters.status);
+          const tagMatches = !filters.tag || metadata.tags.includes(filters.tag);
+          const sourceMatches = !filters.source || metadata.sourceFiles.includes(filters.source);
+          return searchMatches && statusMatches && tagMatches && sourceMatches;
+        };
+        const applyFilters = () => {
+          const filters = {
+            search: controls.search.value.trim().toLocaleLowerCase(),
+            status: controls.status.value,
+            tag: controls.tag.value,
+            feature: controls.feature.value,
+            rule: controls.rule.value,
+            source: controls.source.value,
+          };
+          const scenarios = [...document.querySelectorAll('.scenario')];
 
-  for (const scenario of scenarios) {
-    const featureMatches = !filters.feature || scenario.dataset.featureId === filters.feature;
-    const ruleMatches = !filters.rule || scenario.dataset.ruleId === filters.rule;
-    scenario.hidden = !(featureMatches && ruleMatches && commonMatch(scenario, filters));
-    if (!scenario.hidden && (filters.search || filters.status === 'failed')) scenario.querySelector('.scenario-details').open = true;
-  }
+          for (const scenario of scenarios) {
+            const featureMatches = !filters.feature || scenario.dataset.featureId === filters.feature;
+            const ruleMatches = !filters.rule || scenario.dataset.ruleId === filters.rule;
+            scenario.hidden = !(featureMatches && ruleMatches && commonMatch(scenario, filters));
+            if (!scenario.hidden && (filters.search || filters.status === 'failed')) scenario.querySelector('.scenario-details').open = true;
+          }
 
-  for (const rule of document.querySelectorAll('.rule')) {
-    const childVisible = [...rule.querySelectorAll('.scenario')].some((scenario) => !scenario.hidden);
-    const selected = (!filters.feature || rule.closest('.feature').dataset.modelId === filters.feature)
-      && (!filters.rule || rule.dataset.modelId === filters.rule);
-    rule.hidden = !(selected && (childVisible || commonMatch(rule, filters)));
-  }
-  for (const feature of document.querySelectorAll('.feature')) {
-    const childVisible = [...feature.querySelectorAll('.rule')].some((rule) => !rule.hidden);
-    const selected = !filters.feature || feature.dataset.modelId === filters.feature;
-    feature.hidden = !(selected && (childVisible || commonMatch(feature, filters)));
-  }
-  for (const group of document.querySelectorAll('.standalone-group')) {
-    const visible = [...group.querySelectorAll('.scenario')].some((scenario) => !scenario.hidden);
-    group.hidden = !visible;
-  }
+          for (const rule of document.querySelectorAll('.rule')) {
+            const childVisible = [...rule.querySelectorAll('.scenario')].some((scenario) => !scenario.hidden);
+            const selected = (!filters.feature || rule.closest('.feature').dataset.modelId === filters.feature)
+              && (!filters.rule || rule.dataset.modelId === filters.rule);
+            rule.hidden = !(selected && (childVisible || commonMatch(rule, filters)));
+          }
+          for (const feature of document.querySelectorAll('.feature')) {
+            const childVisible = [...feature.querySelectorAll('.rule')].some((rule) => !rule.hidden);
+            const selected = !filters.feature || feature.dataset.modelId === filters.feature;
+            feature.hidden = !(selected && (childVisible || commonMatch(feature, filters)));
+          }
+          for (const group of document.querySelectorAll('.standalone-group')) {
+            const visible = [...group.querySelectorAll('.scenario')].some((scenario) => !scenario.hidden);
+            group.hidden = !visible;
+          }
 
-  for (const item of document.querySelectorAll('[data-target-id]')) {
-    const target = document.getElementById(item.dataset.targetId);
-    item.hidden = !target || target.hidden;
-  }
+          for (const item of document.querySelectorAll('[data-target-id]')) {
+            const target = document.getElementById(item.dataset.targetId);
+            item.hidden = !target || target.hidden;
+          }
 
-  const visibleCount = scenarios.filter((scenario) => !scenario.hidden).length;
-  results.textContent = visibleCount === 0 && scenarios.length > 0
-    ? `No scenarios match these filters (0 of ${scenarios.length}).`
-    : `${visibleCount} of ${scenarios.length} scenarios shown.`;
-};
+          const visibleCount = scenarios.filter((scenario) => !scenario.hidden).length;
+          results.textContent = visibleCount === 0 && scenarios.length > 0
+            ? `No scenarios match these filters (0 of ${scenarios.length}).`
+            : `${visibleCount} of ${scenarios.length} scenarios shown.`;
+        };
 
-for (const control of Object.values(controls)) {
-  control.addEventListener(control === controls.search ? 'input' : 'change', applyFilters);
-}
-document.getElementById('clear-filters').addEventListener('click', () => {
-  for (const control of Object.values(controls)) control.value = '';
-  applyFilters();
-  controls.search.focus();
-});
-applyFilters();
+        for (const control of Object.values(controls)) {
+          control.addEventListener(control === controls.search ? 'input' : 'change', applyFilters);
+        }
+        document.getElementById('clear-filters').addEventListener('click', () => {
+          for (const control of Object.values(controls)) control.value = '';
+          applyFilters();
+          controls.search.focus();
+        });
+        applyFilters();
 
-document.querySelector('nav').addEventListener('click', (event) => {
-  const link = event.target.closest('a[href^="#"]');
-  if (!link) return;
-  const target = document.getElementById(link.hash.slice(1));
-  const details = target?.querySelector('.scenario-details');
-  if (details) details.open = true;
-});
+        document.querySelector('nav').addEventListener('click', (event) => {
+          const link = event.target.closest('a[href^="#"]');
+          if (!link) return;
+          const target = document.getElementById(link.hash.slice(1));
+          const details = target?.querySelector('.scenario-details');
+          if (details) details.open = true;
+        });
 
-const copyFallback = (value) => {
-  const input = document.createElement('textarea');
-  input.value = value;
-  input.setAttribute('readonly', '');
-  input.style.position = 'fixed';
-  input.style.opacity = '0';
-  document.body.append(input);
-  input.select();
-  const copied = document.execCommand('copy');
-  input.remove();
-  if (!copied) throw new Error('Copy is not available in this browser.');
-};
-document.addEventListener('click', async (event) => {
-  const button = event.target.closest('.copy-source');
-  if (!button) return;
-  try {
-    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(button.dataset.copy);
-    else copyFallback(button.dataset.copy);
-    button.textContent = 'Copied';
-  } catch {
-    try {
-      copyFallback(button.dataset.copy);
-      button.textContent = 'Copied';
-    } catch {
-      button.textContent = 'Copy failed';
-    }
-  }
-});
-JS;
+        const copyFallback = (value) => {
+          const input = document.createElement('textarea');
+          input.value = value;
+          input.setAttribute('readonly', '');
+          input.style.position = 'fixed';
+          input.style.opacity = '0';
+          document.body.append(input);
+          input.select();
+          const copied = document.execCommand('copy');
+          input.remove();
+          if (!copied) throw new Error('Copy is not available in this browser.');
+        };
+        document.addEventListener('click', async (event) => {
+          const button = event.target.closest('.copy-source');
+          if (!button) return;
+          try {
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(button.dataset.copy);
+            else copyFallback(button.dataset.copy);
+            button.textContent = 'Copied';
+          } catch {
+            try {
+              copyFallback(button.dataset.copy);
+              button.textContent = 'Copied';
+            } catch {
+              button.textContent = 'Copy failed';
+            }
+          }
+        });
+        JS_WRAP;
     }
 }
