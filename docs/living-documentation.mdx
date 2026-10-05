@@ -1,9 +1,9 @@
 ---
-title: Living documentation
-description: Generate a static HTML catalogue of Pest Flow behaviour.
+title: Behaviour viewer
+description: Generate a static interactive explorer for Pest Flow behaviour.
 ---
 
-Generate a static HTML catalogue after Pest runs your tests:
+Generate the interactive viewer after Pest runs your tests:
 
 ~~~sh
 vendor/bin/pest --flow-report
@@ -19,9 +19,20 @@ Pass a directory to choose another output location:
 vendor/bin/pest --flow-report=docs/behaviour
 ~~~
 
-The report presents features, rules, scenarios, standalone scenarios, steps recorded in the run,
-direct tags, source file and line values, execution status, and duration when available. It includes
-navigation and suite counts.
+The viewer presents features, rules, scenarios, standalone scenarios, recorded steps, direct tags,
+source file and line values, execution status, and duration when available. Expand a scenario to
+inspect its ordered Given, When, and Then steps.
+
+Use the search box to find feature names, rule names, scenario names, step descriptions, and tags.
+Use the filters to narrow results by status, tag, feature, rule, or source file. A matching step
+keeps its scenario and parent feature and rule visible. The status filter also matches step status,
+so you can find failed steps.
+
+Tags remain listed on the feature, rule, or scenario where they were declared. A selected feature or
+rule tag also matches its descendant scenarios.
+
+Use **Copy location** to copy a recorded source file and line. The viewer does not assume that a
+source path can be opened from a local or published report.
 
 Feature, rule, and scenario counts include every behaviour definition loaded by Pest. Step nodes are
 recorded when a scenario runs, so a filtered run can show an unexecuted scenario as `Pending` with
@@ -30,4 +41,4 @@ Tags shown on each node are the tags declared directly on that node.
 
 Pest still returns its normal failing exit code when a scenario fails. Pest Flow writes the report
 if report generation succeeds. The process-local registry is unavailable with `--parallel`, so
-living documentation cannot be generated in parallel mode.
+the viewer cannot be generated in parallel mode.

@@ -128,7 +128,7 @@ The output directory must already exist. Schema version 1 includes Features, Rul
 
 ### Living documentation
 
-Generate a self-contained HTML report after Pest runs the tests:
+Generate a self-contained interactive behaviour viewer after Pest runs the tests:
 
 ```sh
 vendor/bin/pest --flow-report
@@ -143,9 +143,10 @@ To choose another output directory, pass it after `=`:
 vendor/bin/pest --flow-report=build/behaviour
 ```
 
-The report includes navigation, suite counts, behaviour nodes, recorded steps, direct tags, source
-locations, and execution data when available. It has a light and dark theme toggle. The HTML file
-needs no server or external assets.
+The viewer includes search across feature, rule, scenario, step, and tag text; filters for status,
+tag, feature, rule, and source file; an expandable Given/When/Then scenario flow; source-location
+copy controls; suite counts; and execution data when available. It has a light and dark theme
+toggle. The HTML file needs no server or external assets.
 
 The report is unavailable with `--parallel` because worker registries are process-local. See the
 [living documentation guide](docs/living-documentation.mdx).
