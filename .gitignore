@@ -10,6 +10,8 @@ composer.lock
 *.swp
 *.swo
 node_modules/
+/tests/Browser/Screenshots/
+/tests/Browser/Traces/
 .blume/
 dist/
 .blume-verify/

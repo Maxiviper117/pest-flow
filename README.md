@@ -256,6 +256,18 @@ composer test
 `composer test` runs the Rector dry-run check, Pint formatting, PHPStan at level 10, and the Pest
 test suite. Run Composer metadata validation separately with `composer validate --strict`.
 
+The static report's browser interactions are covered with Pest's Playwright-based browser plugin.
+Install Chromium once, then run the report tests:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+composer test:browser
+```
+
+These tests run a Pest fixture to generate a real report, serve the static file locally, and exercise
+the report in Chromium.
+
 The documentation site uses pnpm and Node.js 22.12 or newer:
 
 ```sh
