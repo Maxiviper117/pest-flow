@@ -265,8 +265,8 @@ pnpm exec playwright install chromium
 composer test:browser
 ```
 
-These tests run a Pest fixture to generate a real report, serve the static file locally, and exercise
-the report in Chromium.
+These tests run a Pest fixture to generate a real report, open it from the local filesystem and a
+local HTTP server, and exercise the report in Chromium.
 
 The documentation site uses pnpm and Node.js 22.12 or newer:
 

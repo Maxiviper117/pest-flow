@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 $temporaryDirectory = null;
 $reportUrl = null;
+$reportFileUrl = null;
 $server = null;
 
-beforeAll(function () use (&$temporaryDirectory, &$reportUrl, &$server): void {
+beforeAll(function () use (&$temporaryDirectory, &$reportUrl, &$reportFileUrl, &$server): void {
     $projectRoot = dirname(__DIR__, 2);
     $temporaryDirectory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'pest-flow-browser-'.bin2hex(random_bytes(8));
     $fixture = $temporaryDirectory.DIRECTORY_SEPARATOR.'FlowViewerFixtureTest.php';
@@ -87,6 +88,15 @@ PHP;
         if ($exitCode !== 1 || ! is_file($reportPath) || ! str_contains($consoleOutput, 'Pest Flow living documentation written to')) {
             throw new RuntimeException('The Pest fixture did not generate the expected report.'.$consoleOutput);
         }
+
+        $normalizedReportPath = str_replace('\\', '/', $reportPath);
+        $pathSegments = array_map('rawurlencode', explode('/', $normalizedReportPath));
+
+        if (preg_match('/^[A-Za-z]%3A$/', $pathSegments[0]) === 1) {
+            $pathSegments[0] = substr($pathSegments[0], 0, 1).':';
+        }
+
+        $reportFileUrl = 'file://'.(str_starts_with($normalizedReportPath, '/') ? '' : '/').implode('/', $pathSegments);
 
         $socket = stream_socket_server('tcp://127.0.0.1:0', $errorCode, $errorMessage);
 
@@ -174,12 +184,24 @@ it('opens the generated report with its behaviour hierarchy and summary', functi
     $page = visit($reportUrl);
 
     $page->assertTitle('Pest Flow behaviour explorer')
-        ->assertCount('.scenario', 3)
         ->assertSeeIn('#filter-results', '3 of 3 scenarios shown.')
         ->assertSee('Application Behaviour')
         ->assertSee('Checkout')
-        ->assertSee('Card payments')
-        ->assertSee('standalone health check');
+        ->assertSee('Standalone scenarios')
+        ->assertScript("document.querySelectorAll('.scenario').length === 3")
+        ->assertScript("Array.from(document.querySelectorAll('.contents-details, .feature-details, .rule-details, .scenario-details, .standalone-details')).every(details => !details.open)");
+});
+
+it('opens the self-contained report directly from the local filesystem', function () use (&$reportFileUrl, &$reportUrl): void {
+    $page = visit($reportUrl);
+    $page->page()->goto($reportFileUrl);
+
+    $page->assertTitle('Pest Flow behaviour explorer')
+        ->assertScript("window.location.protocol === 'file:'")
+        ->assertScript("JSON.parse(document.getElementById('flow-document').textContent).schema_version === 1")
+        ->fill('#filter-search', 'billing')
+        ->assertSeeIn('#filter-results', '2 of 3 scenarios shown.')
+        ->assertScript("document.querySelector('.feature-details').open && document.querySelector('.rule-details').open");
 });
 
 it('filters failing scenarios and expands their recorded steps', function () use (&$reportUrl): void {
@@ -209,6 +231,19 @@ it('searches step text while preserving ancestry and finds standalone scenarios'
         ->assertMissing('.feature');
 });
 
+it('searches tags declared on features and rules and keeps their scenarios visible', function () use (&$reportUrl): void {
+    $page = visit($reportUrl);
+    $page->fill('#filter-search', 'billing')
+        ->assertSeeIn('#filter-results', '2 of 3 scenarios shown.')
+        ->assertScript("Array.from(document.querySelectorAll('.scenario')).filter(scenario => !scenario.hidden).length === 2")
+        ->assertScript("Array.from(document.querySelectorAll('.feature-details, .rule-details')).filter(details => !details.open).length === 0");
+
+    $page->click('#clear-filters')
+        ->fill('#filter-search', 'critical')
+        ->assertSeeIn('#filter-results', '2 of 3 scenarios shown.')
+        ->assertScript("Array.from(document.querySelectorAll('.scenario')).filter(scenario => !scenario.hidden).length === 2");
+});
+
 it('filters by inherited tags, feature, rule, and source file', function () use (&$reportUrl): void {
     $page = visit($reportUrl);
     $page->select('#filter-tag', 'critical')
@@ -235,9 +270,12 @@ it('filters by inherited tags, feature, rule, and source file', function () use 
 
 it('opens a scenario when its navigation link is selected', function () use (&$reportUrl): void {
     $page = visit($reportUrl);
-    $page->click("nav a:has-text('declines an expired card')");
+    $page->click("nav summary:has-text('Checkout')")
+        ->click("nav summary:has-text('Card payments')")
+        ->click("nav a:has-text('declines an expired card')");
 
-    expect($page->script("document.querySelector('.scenario.status-failed .scenario-details').open"))->toBeTrue();
+    expect($page->script("document.querySelector('.scenario.status-failed .scenario-details').open"))->toBeTrue()
+        ->and($page->script("document.querySelector('.feature-details').open && document.querySelector('.rule-details').open"))->toBeTrue();
 });
 
 it('copies the recorded source file and line', function () use (&$reportUrl): void {

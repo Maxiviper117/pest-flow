@@ -165,16 +165,20 @@ final class DocumentationReporter
 
         foreach ($features as $feature) {
             $featureTarget = $this->featureTarget($feature);
-            $lines[] = '          <li data-target-id="'.$this->escape($featureTarget).'">'
-                .'<a href="#'.$this->escape($featureTarget).'">'.$this->escape($feature['name']).'</a>';
+            $lines[] = '          <li data-target-id="'.$this->escape($featureTarget).'">';
+            $lines[] = '            <details class="contents-details">';
+            $lines[] = '              <summary>'.$this->escape($feature['name']).'</summary>';
+            $lines[] = '              <a class="contents-target-link" href="#'.$this->escape($featureTarget).'" aria-label="Jump to feature: '.$this->escape($feature['name']).'">Jump to feature</a>';
 
             if ($feature['rules'] !== []) {
                 $lines[] = '            <ul>';
 
                 foreach ($feature['rules'] as $rule) {
                     $ruleTarget = $this->ruleTarget($rule);
-                    $lines[] = '              <li data-target-id="'.$this->escape($ruleTarget).'">'
-                        .'<a href="#'.$this->escape($ruleTarget).'">'.$this->escape($rule['name']).'</a>';
+                    $lines[] = '              <li data-target-id="'.$this->escape($ruleTarget).'">';
+                    $lines[] = '                <details class="contents-details">';
+                    $lines[] = '                  <summary>'.$this->escape($rule['name']).'</summary>';
+                    $lines[] = '                  <a class="contents-target-link" href="#'.$this->escape($ruleTarget).'" aria-label="Jump to rule: '.$this->escape($rule['name']).'">Jump to rule</a>';
 
                     if ($rule['scenarios'] !== []) {
                         $lines[] = '                <ul>';
@@ -188,17 +192,22 @@ final class DocumentationReporter
                         $lines[] = '                </ul>';
                     }
 
+                    $lines[] = '                </details>';
                     $lines[] = '              </li>';
                 }
 
                 $lines[] = '            </ul>';
             }
 
+            $lines[] = '            </details>';
             $lines[] = '          </li>';
         }
 
         if ($standaloneScenarios !== []) {
-            $lines[] = '          <li data-target-id="standalone-scenarios"><a href="#standalone-scenarios">Standalone scenarios</a>';
+            $lines[] = '          <li data-target-id="standalone-scenarios">';
+            $lines[] = '            <details class="contents-details">';
+            $lines[] = '              <summary>Standalone scenarios</summary>';
+            $lines[] = '              <a class="contents-target-link" href="#standalone-scenarios">Jump to standalone scenarios</a>';
             $lines[] = '            <ul>';
 
             foreach ($standaloneScenarios as $scenario) {
@@ -208,6 +217,7 @@ final class DocumentationReporter
             }
 
             $lines[] = '            </ul>';
+            $lines[] = '            </details>';
             $lines[] = '          </li>';
         }
 
@@ -270,11 +280,14 @@ final class DocumentationReporter
         if ($standaloneScenarios !== []) {
             $lines[] = '        <section class="standalone-group" id="standalone-scenarios" aria-labelledby="standalone-title">';
             $lines[] = '          <h2 id="standalone-title">Standalone scenarios</h2>';
+            $lines[] = '          <details class="group-details standalone-details">';
+            $lines[] = '            <summary>Explore '.count($standaloneScenarios).' standalone scenarios</summary>';
 
             foreach ($standaloneScenarios as $scenario) {
                 $lines[] = $this->scenario($scenario, null, null, 3);
             }
 
+            $lines[] = '          </details>';
             $lines[] = '        </section>';
         }
 
@@ -305,12 +318,15 @@ final class DocumentationReporter
             $this->tags($feature['tags']),
             $this->source($feature['source']),
             '          </header>',
+            '          <details class="group-details feature-details">',
+            '            <summary>Explore '.count($rules).' rules</summary>',
         ];
 
         foreach ($rules as $rule) {
             $lines[] = $this->rule($rule, $feature);
         }
 
+        $lines[] = '          </details>';
         $lines[] = '        </section>';
 
         return implode(PHP_EOL, $lines);
@@ -334,12 +350,15 @@ final class DocumentationReporter
             $this->tags($rule['tags']),
             $this->source($rule['source']),
             '            </header>',
+            '            <details class="group-details rule-details">',
+            '              <summary>Explore '.count($rule['scenarios']).' scenarios</summary>',
         ];
 
         foreach ($rule['scenarios'] as $scenario) {
             $lines[] = $this->scenario($scenario, $feature, $rule, 4);
         }
 
+        $lines[] = '            </details>';
         $lines[] = '          </section>';
 
         return implode(PHP_EOL, $lines);
@@ -547,6 +566,7 @@ final class DocumentationReporter
 body{caret-color:var(--accent)}*{scrollbar-color:var(--muted) var(--panel);scrollbar-width:thin}.page-header h1{font-size:2.5rem}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .skip-link{position:absolute;left:-10000px;top:1rem;background:var(--panel);padding:.6rem}.skip-link:focus{left:1rem;z-index:2}
+.contents-details>summary{cursor:pointer;list-style-position:inside}.contents-details>summary::marker{color:var(--accent)}.contents-target-link{display:inline-block;margin:.15rem 0 .3rem .85rem;font-size:.78rem;color:var(--muted)}
 .layout{display:grid;grid-template-columns:minmax(17rem,22rem) minmax(0,1fr);max-width:100rem;margin:auto;min-height:100vh}.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:1.6rem 1.3rem;background:var(--panel);border-right:1px solid var(--line)}
 .sidebar h1{font-size:1.15rem;letter-spacing:-.02em;margin:0 0 .7rem}.theme-toggle,.clear-filters{display:block;margin:.5rem 0 1rem;padding:.5rem .75rem;border:1px solid var(--line);border-radius:.4rem;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}.theme-toggle:hover,.clear-filters:hover{border-color:var(--accent);color:var(--accent)}
 .filters{display:grid;gap:.35rem;margin:1.25rem 0 1.7rem}.filters h2,.sidebar nav h2{font-size:.85rem;letter-spacing:.02em;margin:0 0 .2rem}.filters label{font-size:.78rem;font-weight:650;margin-top:.25rem}.filters input,.filters select{width:100%;min-height:2.4rem;padding:.35rem .5rem;border:1px solid var(--line);border-radius:.35rem;background:var(--bg);color:var(--ink);font:inherit;font-size:.84rem}.clear-filters{width:100%;margin:.7rem 0 0}
@@ -554,8 +574,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 main{min-width:0;padding:clamp(1.3rem,4vw,3.75rem)}.page-header{max-width:76ch;padding-bottom:1.5rem;border-bottom:1px solid var(--line)}.eyebrow{color:var(--accent);font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .4rem}.page-header h1{font-size:clamp(2rem,4vw,3.1rem);letter-spacing:-.03em;line-height:1.08;margin:0 0 .7rem}.page-header p:last-child{color:var(--muted);margin:0}.summary{max-width:76ch;padding:1.3rem 0;margin:1.3rem 0 .5rem;border-bottom:1px solid var(--line)}.summary h2{font-size:1.1rem;margin:0 0 .8rem}.summary h3{font-size:.9rem;margin:1.1rem 0 .45rem}.count-grid,.status-grid,.node-summary{display:flex;flex-wrap:wrap;gap:.4rem 0;margin:0}.count-grid div,.status-count,.node-summary div{display:flex;align-items:baseline;gap:.35rem;padding:.1rem .8rem;border-right:1px solid var(--line)}.count-grid div:first-child,.status-count:first-child,.node-summary div:first-child{padding-left:0}.count-grid div:last-child,.status-count:last-child,.node-summary div:last-child{border-right:0}.count-grid dt,.status-count dt,.node-summary dt{font-size:.82rem;color:var(--muted)}.count-grid dd,.status-count dd,.node-summary dd{font-size:.92rem;font-weight:700;margin:0}.summary-note,.filter-results{font-size:.82rem;color:var(--muted);margin:.7rem 0 0}.filter-results{max-width:76ch;min-height:1.3em}.behaviour{max-width:76ch}.feature{border-top:1px solid var(--line);padding:1.5rem 0}.feature>.node-header{margin-bottom:1rem}.feature h2{font-size:1.55rem;letter-spacing:-.025em;line-height:1.2;margin:0 0 .45rem}.node-summary{font-size:.82rem;margin:.45rem 0}.rule{padding:0;margin:1.4rem 0 1.7rem}.rule h3{font-size:1.1rem;letter-spacing:-.01em;margin:0 0 .3rem}.parent-link{font-size:.8rem;color:var(--muted);margin:.2rem 0}.rule-summary{font-size:.8rem;color:var(--muted);margin:.25rem 0}.scenario{padding:.9rem 0 .55rem;margin:.8rem 0 0;border-top:1px solid var(--line)}.scenario-details>summary{display:flex;align-items:center;flex-wrap:wrap;gap:.35rem .9rem;cursor:pointer;list-style-position:outside}.scenario-details>summary::marker{color:var(--accent)}.scenario h4,.scenario h3{margin:0;font-size:1rem;font-weight:650}.status-label{display:inline-flex;align-items:center;padding:.05rem .45rem;border:1px solid var(--line);border-radius:999px;color:var(--ink);font-size:.75rem;font-weight:650}.status-passed .status-label{border-color:var(--good)}.status-failed .status-label{border-color:var(--bad)}.status-running .status-label{border-color:var(--warn)}.status-skipped .status-label{border-color:var(--skip)}
 .execution-summary{font-size:.78rem;color:var(--muted);margin:.25rem 0}.scenario-metadata{padding:.35rem 0 .1rem}.source,.duration{font-size:.8rem;color:var(--muted);margin:.3rem 0}.source span,.duration span{font-weight:650;margin-right:.3rem}.source code{overflow-wrap:anywhere}.copy-source{margin-left:.45rem;padding:.12rem .4rem;border:1px solid var(--line);border-radius:.3rem;background:var(--panel);color:var(--ink);font:inherit;font-size:.74rem;cursor:pointer}.copy-source:hover{border-color:var(--accent)}
 .tags{display:flex;flex-wrap:wrap;gap:.35rem;list-style:none;padding:0;margin:.4rem 0}.tags li{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:.06rem .48rem;font-size:.74rem}.steps{padding-left:1.8rem;margin:.8rem 0 .3rem}.flow-step{position:relative;padding:.55rem .25rem .75rem;border-bottom:1px solid var(--line)}.flow-step:last-child{border-bottom:0}.flow-step:not(:last-child)::after{content:"↓";position:absolute;bottom:-.68rem;left:-1.25rem;z-index:1;color:var(--muted);background:var(--bg);padding:0 .2rem}.step-status{display:inline-block;min-width:4.2rem;color:var(--muted);font-size:.75rem;font-weight:650}.status-passed .step-status{color:var(--good)}.status-failed .step-status{color:var(--bad)}.status-running .step-status{color:var(--warn)}.step-type{font-weight:700}.step .source{margin:.3rem 0 0 4.2rem}.no-steps{font-size:.88rem;color:var(--muted);margin:.8rem 0}.standalone-group{border-top:1px solid var(--line);padding-top:1.4rem;margin-top:2rem}.standalone-group h2{font-size:1.45rem;letter-spacing:-.02em}.empty-state{padding:1rem 0;border-block:1px solid var(--line);color:var(--muted)}
+.group-details{margin:.65rem 0}.group-details>summary{width:fit-content;color:var(--accent);cursor:pointer;font-size:.84rem;font-weight:650;list-style-position:inside}.group-details>summary::marker{color:var(--accent)}.feature-details{margin-top:.85rem}.rule-details{margin:.5rem 0}.standalone-details{margin-top:.75rem}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151d;--panel:#171f2a;--ink:#eef3f9;--muted:#aab8c8;--line:#344252;--accent:#8ab4f8;--good:#64d49b;--bad:#ff8a80;--warn:#ffd166;--skip:#aab8c8}}
 @media(max-width:760px){.layout{display:block}.sidebar{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line);padding:1rem 1.1rem}.sidebar nav{max-height:14rem;overflow:auto}main{padding:1.2rem}.page-header h1{font-size:2rem}.count-grid div,.status-count,.node-summary div{padding-inline:.55rem}.count-grid div:first-child,.status-count:first-child,.node-summary div:first-child{padding-left:0}}
+@media(print){.contents-details:not([open])>*:not(summary),.group-details:not([open])>*:not(summary),.scenario-details:not([open])>*:not(summary){display:block}}
 @media(print){body{background:#fff;color:#111}.layout{display:block;max-width:none}.sidebar{position:static;max-height:none;border:0;border-bottom:1px solid #999}.filters,.theme-toggle,.copy-source{display:none}.source,.duration,.summary-note{color:#444}a{color:#111;text-decoration:none}.scenario-details:not([open])>*:not(summary){display:block}}
 CSS;
     }
@@ -652,7 +674,7 @@ CSS;
               const ancestors = [feature, rule];
               addNodeMetadata(
                 `scenario-${scenario.id}`,
-                [feature.name, rule.name, scenario.name, ...scenario.tags, ...(scenario.steps ?? []).flatMap((step) => [step.type, step.text])],
+                [feature.name, rule.name, scenario.name, ...feature.tags, ...rule.tags, ...scenario.tags, ...(scenario.steps ?? []).flatMap((step) => [step.type, step.text])],
                 [...feature.tags, ...rule.tags, ...scenario.tags],
                 [...ancestors, scenario, ...(scenario.steps ?? [])],
                 scenarioStatuses,
@@ -707,7 +729,15 @@ CSS;
             const featureMatches = !filters.feature || scenario.dataset.featureId === filters.feature;
             const ruleMatches = !filters.rule || scenario.dataset.ruleId === filters.rule;
             scenario.hidden = !(featureMatches && ruleMatches && commonMatch(scenario, filters));
-            if (!scenario.hidden && (filters.search || filters.status === 'failed')) scenario.querySelector('.scenario-details').open = true;
+            if (!scenario.hidden && Object.values(filters).some(Boolean)) {
+              scenario.querySelector('.scenario-details').open = true;
+              const ruleDetails = scenario.closest('.rule')?.querySelector('.rule-details');
+              const featureDetails = scenario.closest('.feature')?.querySelector('.feature-details');
+              const standaloneDetails = scenario.closest('.standalone-details');
+              if (ruleDetails) ruleDetails.open = true;
+              if (featureDetails) featureDetails.open = true;
+              if (standaloneDetails) standaloneDetails.open = true;
+            }
           }
 
           for (const rule of document.querySelectorAll('.rule')) {
@@ -751,7 +781,10 @@ CSS;
           const link = event.target.closest('a[href^="#"]');
           if (!link) return;
           const target = document.getElementById(link.hash.slice(1));
-          const details = target?.querySelector('.scenario-details');
+          for (let ancestor = target; ancestor; ancestor = ancestor.parentElement) {
+            if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+          }
+          const details = target?.querySelector('.feature-details, .rule-details, .standalone-details, .scenario-details');
           if (details) details.open = true;
         });
 
