@@ -11,6 +11,7 @@ Every scenario remains a normal Pest test. Pest Flow records the behaviour hiera
 - [Install](#install)
 - [Write and run a scenario](#write-and-run-a-scenario)
 - [Generate reports](#generate-reports)
+- [Agent queries](#agent-queries)
 - [Organize and filter scenarios](#organize-and-filter-scenarios)
 - [How scenarios run](#how-scenarios-run)
 - [Inspect the registry](#inspect-the-registry)
@@ -125,6 +126,28 @@ vendor/bin/pest --flow-json=build/flow.json
 ```
 
 The output directory must already exist. Schema version 1 includes Features, Rules, Scenarios, standalone scenarios, steps, IDs, source locations, direct tags, status, and duration. JSON export is unavailable with `--parallel`. See the [JSON export reference](docs/json-export.mdx) for the full schema.
+
+## Agent queries
+
+List registered Features, Rules, and Scenarios without running scenario callbacks:
+
+```sh
+vendor/bin/pest --flow-list
+```
+
+Search behaviour names and tags, or narrow the listing with feature, rule, tag, status, and source filters:
+
+```sh
+vendor/bin/pest --flow-search="invoice cancellation" --flow-feature=Billing --flow-tag=payments
+```
+
+Add `--flow-json` to return the matching hierarchy in the existing versioned JSON format. `--flow-status` runs the Pest suite so it can filter actual execution results. Step descriptions are declared inside scenario callbacks, so step-text search also requires an explicit test run:
+
+```sh
+vendor/bin/pest --flow-search="purchase order" --flow-search-steps --flow-json
+```
+
+Agent queries only inspect Pest Flow metadata. They do not edit tests or behaviour definitions. Status filtering and step-text search are unavailable with `--parallel` because execution metadata is process-local.
 
 ### Living documentation
 

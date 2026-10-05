@@ -6,20 +6,25 @@ namespace Pest\Flow\Plugins;
 
 use JsonException;
 use Pest\Contracts\Plugins\AddsOutput;
+use Pest\Contracts\Plugins\Bootable;
 use Pest\Contracts\Plugins\HandlesArguments;
 use Pest\Flow\FlowRegistry;
+use Pest\Flow\Model\ExecutionStatus;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
+use Pest\Flow\Query\BehaviourQuery;
+use Pest\Flow\Reporting\AgentListReporter;
 use Pest\Flow\Reporting\ConsoleReporter;
 use Pest\Flow\Reporting\DocumentationReporter;
 use Pest\Flow\Reporting\JsonReporter;
+use PHPUnit\Event\Facade as EventFacade;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Adds the optional Pest Flow reports.
  */
-final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
+final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArguments
 {
     private bool $enabled = false;
 
@@ -35,7 +40,64 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
 
     private ?string $jsonOutputPath = null;
 
+    private bool $agentQueryEnabled = false;
+
+    private bool $agentIncludeSteps = false;
+
+    private ?string $agentSearch = null;
+
+    private ?string $agentFeatureFilter = null;
+
+    private ?string $agentRuleFilter = null;
+
+    private ?string $agentTagFilter = null;
+
+    private ?string $agentStatusFilter = null;
+
+    private ?string $agentSourceFilter = null;
+
     public function __construct(private readonly OutputInterface $output) {}
+
+    public function boot(): void
+    {
+        EventFacade::instance()->registerSubscriber(new AgentQuerySubscriber($this));
+    }
+
+    public function shouldRunAgentQueryBeforeTests(): bool
+    {
+        if (! $this->agentQueryEnabled) {
+            return false;
+        }
+
+        foreach ([
+            $this->agentSearch,
+            $this->agentFeatureFilter,
+            $this->agentRuleFilter,
+            $this->agentTagFilter,
+            $this->agentStatusFilter,
+            $this->agentSourceFilter,
+        ] as $filter) {
+            if ($filter !== null && trim($filter) === '') {
+                return true;
+            }
+        }
+
+        if ($this->agentStatusFilter !== null
+            && ExecutionStatus::tryFrom(strtolower(trim($this->agentStatusFilter))) === null) {
+            return true;
+        }
+
+        if ($this->agentIncludeSteps && $this->agentSearch === null) {
+            return true;
+        }
+
+        return $this->agentStatusFilter === null && ! $this->agentIncludeSteps;
+    }
+
+    public function runAgentQueryBeforeTests(): never
+    {
+        exit($this->addAgentQueryOutput(0));
+    }
 
     /**
      * @param  array<int, string>  $arguments
@@ -50,13 +112,21 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
         $this->documentationOutputDirectory = 'build/pest-flow';
         $this->jsonOutputToFile = false;
         $this->jsonOutputPath = null;
+        $this->agentQueryEnabled = false;
+        $this->agentIncludeSteps = false;
+        $this->agentSearch = null;
+        $this->agentFeatureFilter = null;
+        $this->agentRuleFilter = null;
+        $this->agentTagFilter = null;
+        $this->agentStatusFilter = null;
+        $this->agentSourceFilter = null;
         $remaining = [];
         $afterSeparator = false;
         $hasNoOutput = false;
 
         foreach ($arguments as $argument) {
             if ($argument === '--' && ! $afterSeparator) {
-                if ($this->jsonEnabled && ! $this->jsonOutputToFile && ! $hasNoOutput) {
+                if (($this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) && ! $hasNoOutput) {
                     $remaining[] = '--no-output';
                     $hasNoOutput = true;
                 }
@@ -69,6 +139,61 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
 
             if (! $afterSeparator && $argument === '--flow') {
                 $this->enabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && $argument === '--flow-list') {
+                $this->agentQueryEnabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-search=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentSearch = substr($argument, strlen('--flow-search='));
+
+                continue;
+            }
+
+            if (! $afterSeparator && $argument === '--flow-search-steps') {
+                $this->agentQueryEnabled = true;
+                $this->agentIncludeSteps = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-feature=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentFeatureFilter = substr($argument, strlen('--flow-feature='));
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-rule=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentRuleFilter = substr($argument, strlen('--flow-rule='));
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-tag=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentTagFilter = substr($argument, strlen('--flow-tag='));
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-status=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentStatusFilter = substr($argument, strlen('--flow-status='));
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-source=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentSourceFilter = substr($argument, strlen('--flow-source='));
 
                 continue;
             }
@@ -116,13 +241,13 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
             $remaining[] = $argument;
         }
 
-        if ($this->jsonEnabled && ! $this->jsonOutputToFile && ! $hasNoOutput) {
+        if (($this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) && ! $hasNoOutput) {
             $remaining[] = '--no-output';
         }
 
-        if ($this->jsonEnabled && ! $this->jsonOutputToFile) {
+        if ($this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) {
             // Pest's Collision printer writes its own progress and recap regardless of --no-output.
-            // Disable it so this plugin can reserve stdout for the JSON document.
+            // Disable it so agent output can remain clean and predictable.
             unset($_SERVER['COLLISION_PRINTER']);
         }
 
@@ -131,6 +256,10 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
 
     public function addOutput(int $exitCode): int
     {
+        if ($this->agentQueryEnabled) {
+            return $this->addAgentQueryOutput($exitCode);
+        }
+
         if ($this->jsonEnabled) {
             $exitCode = $this->addJsonOutput($exitCode);
         }
@@ -161,6 +290,74 @@ final class ConsoleReporterPlugin implements AddsOutput, HandlesArguments
         $this->output->writeln(['', $report]);
 
         return $exitCode;
+    }
+
+    private function addAgentQueryOutput(int $exitCode): int
+    {
+        if ($this->parallel && ($this->agentStatusFilter !== null || $this->agentIncludeSteps)) {
+            $this->writeError('Status filtering and step-text search are unavailable with --parallel because execution metadata is process-local.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        try {
+            if ($this->agentIncludeSteps && $this->agentSearch === null) {
+                throw new \InvalidArgumentException('--flow-search-steps requires --flow-search=QUERY.');
+            }
+
+            $query = new BehaviourQuery(
+                FlowRegistry::features(),
+                $this->standaloneScenarios(),
+                search: $this->agentSearch,
+                feature: $this->agentFeatureFilter,
+                rule: $this->agentRuleFilter,
+                tag: $this->agentTagFilter,
+                status: $this->agentStatusFilter,
+                source: $this->agentSourceFilter,
+            );
+
+            if ($this->jsonEnabled) {
+                if ($this->jsonOutputToFile && ($this->jsonOutputPath === null || $this->jsonOutputPath === '')) {
+                    $this->writeError('Pass a file path after --flow-json=.');
+
+                    return $exitCode === 0 ? 1 : $exitCode;
+                }
+
+                $json = (new JsonReporter)->render(
+                    $query->features(),
+                    $query->standaloneScenarios(),
+                    $query,
+                );
+
+                if ($this->jsonOutputToFile) {
+                    $bytesWritten = @file_put_contents($this->jsonOutputPath, $json);
+
+                    if ($bytesWritten !== strlen($json)) {
+                        $this->writeError('The Pest Flow JSON report could not be written to the requested file.');
+
+                        return $exitCode === 0 ? 1 : $exitCode;
+                    }
+
+                    return $exitCode;
+                }
+
+                $this->output->write($json);
+
+                return $exitCode;
+            }
+
+            $this->output->write((new AgentListReporter)->render($query));
+
+            return $exitCode;
+        } catch (\InvalidArgumentException $exception) {
+            $this->writeError('The Pest Flow agent query is invalid: '.$exception->getMessage());
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        } catch (JsonException) {
+            $this->writeError('The Pest Flow behaviour query could not be encoded as JSON.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
     }
 
     private function addDocumentationOutput(int $exitCode): int

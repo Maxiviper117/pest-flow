@@ -17,7 +17,7 @@ Feature
 Pest still discovers and runs each scenario as a normal test. You keep Pest's assertions, lifecycle hooks, test runner, and failure output. Pest Flow records features, rules, scenarios, steps, identifiers, source locations, execution statuses, durations, and captured exceptions for PHP code to inspect.
 
 :::note[Current capabilities]
-Pest Flow provides the DSL, an in-memory behaviour registry, an optional terminal report enabled with `pest --flow`, versioned JSON export with `pest --flow-json`, static living documentation with `pest --flow-report`, and feature, rule, and scenario tags that work with Pest's `--group` filter.
+Pest Flow provides the DSL, an in-memory behaviour registry, an optional terminal report enabled with `pest --flow`, versioned JSON export with `pest --flow-json`, static living documentation with `pest --flow-report`, and read-only agent queries with `pest --flow-list` and `pest --flow-search`.
 :::
 
 ## Choose a starting point
@@ -34,6 +34,9 @@ Pest Flow provides the DSL, an in-memory behaviour registry, an optional termina
   </Card>
   <Card title="Registry reference" href="./registry" icon="list-tree">
     Explore the node types, identifiers, source locations, and timing.
+  </Card>
+  <Card title="Agent queries" href="./agent-support" icon="search">
+    List and search registered behaviour before editing application code.
   </Card>
 </CardGroup>
 
@@ -75,5 +78,8 @@ Each step runs in order on the same Pest test context. The values set in `Given`
   </Step>
   <Step title="Inspect discovered behavior">
     Follow the [registry walkthrough](./walkthroughs/inspect-registry) and the [registry reference](./registry).
+  </Step>
+  <Step title="Query behaviour for tools">
+    Use [agent queries](./agent-support) to find relevant Features, Rules, and Scenarios.
   </Step>
 </Steps>

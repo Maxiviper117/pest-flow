@@ -10,6 +10,7 @@ use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
 use Pest\Flow\Model\SourceLocation;
 use Pest\Flow\Model\StepNode;
+use Pest\Flow\Query\BehaviourQuery;
 
 /**
  * Serializes the behaviour tree as a versioned JSON document.
@@ -24,17 +25,20 @@ final class JsonReporter
      *
      * @throws JsonException
      */
-    public function render(array $features, array $standaloneScenarios): string
+    public function render(array $features, array $standaloneScenarios, ?BehaviourQuery $query = null): string
     {
+        $features = $query?->features() ?? $features;
+        $standaloneScenarios = $query?->standaloneScenarios() ?? $standaloneScenarios;
+
         $json = json_encode(
             [
                 'schema_version' => self::SCHEMA_VERSION,
                 'features' => array_map(
-                    $this->feature(...),
+                    fn (FeatureNode $feature): array => $this->feature($feature, $query),
                     $features,
                 ),
                 'standalone_scenarios' => array_map(
-                    $this->scenario(...),
+                    fn (ScenarioNode $scenario): array => $this->scenario($scenario, $query),
                     $standaloneScenarios,
                 ),
             ],
@@ -62,16 +66,18 @@ final class JsonReporter
     /**
      * @return array<string, mixed>
      */
-    private function feature(FeatureNode $feature): array
+    private function feature(FeatureNode $feature, ?BehaviourQuery $query): array
     {
+        $rules = $query instanceof BehaviourQuery ? $query->rulesFor($feature) : $feature->rules();
+
         return [
             'id' => $feature->id,
             'name' => $feature->name,
             'source' => $this->source($feature->source),
             'tags' => $feature->tags(),
             'rules' => array_map(
-                $this->rule(...),
-                $feature->rules(),
+                fn (RuleNode $rule): array => $this->rule($rule, $query),
+                $rules,
             ),
         ];
     }
@@ -79,16 +85,18 @@ final class JsonReporter
     /**
      * @return array<string, mixed>
      */
-    private function rule(RuleNode $rule): array
+    private function rule(RuleNode $rule, ?BehaviourQuery $query): array
     {
+        $scenarios = $query instanceof BehaviourQuery ? $query->scenariosFor($rule) : $rule->scenarios();
+
         return [
             'id' => $rule->id,
             'name' => $rule->name,
             'source' => $this->source($rule->source),
             'tags' => $rule->tags(),
             'scenarios' => array_map(
-                $this->scenario(...),
-                $rule->scenarios(),
+                fn (ScenarioNode $scenario): array => $this->scenario($scenario, $query),
+                $scenarios,
             ),
         ];
     }
@@ -96,8 +104,10 @@ final class JsonReporter
     /**
      * @return array<string, mixed>
      */
-    private function scenario(ScenarioNode $scenario): array
+    private function scenario(ScenarioNode $scenario, ?BehaviourQuery $query): array
     {
+        $steps = $query instanceof BehaviourQuery ? $query->stepsFor($scenario) : $scenario->steps();
+
         return [
             'id' => $scenario->id,
             'name' => $scenario->name,
@@ -107,7 +117,7 @@ final class JsonReporter
             'duration' => $scenario->duration,
             'steps' => array_map(
                 $this->step(...),
-                $scenario->steps(),
+                $steps,
             ),
         ];
     }
