@@ -5,6 +5,27 @@ declare(strict_types=1);
 use Pest\Flow\Plugins\ConsoleReporterPlugin;
 use Symfony\Component\Console\Output\BufferedOutput;
 
+$withoutOuterTiaArgument = static function (callable $callback): mixed {
+    $originalArguments = $_SERVER['argv'] ?? null;
+
+    if (is_array($originalArguments)) {
+        $_SERVER['argv'] = array_values(array_filter(
+            $originalArguments,
+            static fn (mixed $argument): bool => $argument !== '--tia',
+        ));
+    }
+
+    try {
+        return $callback();
+    } finally {
+        if ($originalArguments === null) {
+            unset($_SERVER['argv']);
+        } else {
+            $_SERVER['argv'] = $originalArguments;
+        }
+    }
+};
+
 it('consumes agent query options and suppresses Pest output', function (): void {
     $plugin = new ConsoleReporterPlugin(new BufferedOutput);
     $arguments = $plugin->handleArguments([
@@ -35,26 +56,30 @@ it('consumes behaviour impact options and preserves the read-only query hook', f
         ->and($plugin->shouldRunImpactBeforeTests())->toBeTrue();
 });
 
-it('does not treat Pest’s argv script path as an explicit test path', function (): void {
-    $output = new BufferedOutput;
-    $plugin = new ConsoleReporterPlugin($output);
-    $script = $_SERVER['argv'][0] ?? 'pest';
-    $plugin->handleArguments([$script, '--flow-impact', '--flow-list']);
-    $exitCode = $plugin->addOutput(0);
-    $message = $output->fetch();
+it('does not treat Pest’s argv script path as an explicit test path', function () use ($withoutOuterTiaArgument): void {
+    $withoutOuterTiaArgument(function (): void {
+        $output = new BufferedOutput;
+        $plugin = new ConsoleReporterPlugin($output);
+        $script = $_SERVER['argv'][0] ?? 'pest';
+        $plugin->handleArguments([$script, '--flow-impact', '--flow-list']);
+        $exitCode = $plugin->addOutput(0);
+        $message = $output->fetch();
 
-    expect($exitCode)->toBe(1)
-        ->and($message)->toContain('Use --flow-impact separately')
-        ->and($message)->not->toContain('Do not pass test paths');
+        expect($exitCode)->toBe(1)
+            ->and($message)->toContain('Use --flow-impact separately')
+            ->and($message)->not->toContain('Do not pass test paths');
+    });
 });
 
-it('rejects behaviour impact combined with another Flow query', function (): void {
-    $output = new BufferedOutput;
-    $plugin = new ConsoleReporterPlugin($output);
-    $plugin->handleArguments(['--flow-impact', '--flow-list']);
+it('rejects behaviour impact combined with another Flow query', function () use ($withoutOuterTiaArgument): void {
+    $withoutOuterTiaArgument(function (): void {
+        $output = new BufferedOutput;
+        $plugin = new ConsoleReporterPlugin($output);
+        $plugin->handleArguments(['--flow-impact', '--flow-list']);
 
-    expect($plugin->addOutput(0))->toBe(1)
-        ->and($output->fetch())->toContain('Use --flow-impact separately');
+        expect($plugin->addOutput(0))->toBe(1)
+            ->and($output->fetch())->toContain('Use --flow-impact separately');
+    });
 });
 
 it('does not parse impact-like arguments after the Pest separator', function (): void {
