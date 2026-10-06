@@ -56,6 +56,14 @@ it('consumes behaviour impact options and preserves the read-only query hook', f
         ->and($plugin->shouldRunImpactBeforeTests())->toBeTrue();
 });
 
+it('consumes the fresh TIA graph command before Pest runs tests', function (): void {
+    $plugin = new ConsoleReporterPlugin(new BufferedOutput);
+
+    expect($plugin->handleArguments(['--flow-tia-fresh']))->toBe([])
+        ->and($plugin->shouldRunTiaFreshBeforeTests())->toBeTrue()
+        ->and($plugin->shouldRunImpactBeforeTests())->toBeFalse();
+});
+
 it('does not treat Pest’s argv script path as an explicit test path', function () use ($withoutOuterTiaArgument): void {
     $withoutOuterTiaArgument(function (): void {
         $output = new BufferedOutput;

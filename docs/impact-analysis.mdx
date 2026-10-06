@@ -17,16 +17,21 @@ The report labels this limit as `test-file` precision. Pest TIA can use built-in
 
 ## Record the Pest TIA graph
 
-Pest Flow needs an existing Pest TIA graph. If no graph exists, run:
+Pest Flow needs an existing Pest TIA graph. Create or refresh it with:
 
 ```sh
-vendor/bin/pest --tia
+php vendor/bin/pest --flow-tia-fresh
 ```
 
-Pest records the graph while tests run. The first baseline run requires PCOV or Xdebug to be installed and enabled. Refresh a malformed or structurally stale graph with:
+This runs `--tia --fresh` in a child PHP process and enables Xdebug coverage for that process. It
+does not change the current shell environment, so it works the same in PowerShell, Bash, and other
+shells. PCOV can be used instead when enabled. The PHP executable used to run Pest must have PCOV or
+Xdebug installed.
+
+The lower-level Pest command is also available when coverage is already configured:
 
 ```sh
-vendor/bin/pest --tia --fresh
+php vendor/bin/pest --tia --fresh
 ```
 
 The `--flow-impact` report reads the graph and stops before test execution. It still loads and collects the test files so Pest Flow can build the behaviour registry.

@@ -160,9 +160,10 @@ Pest Flow can map Pest's test-impact result to registered Features, Rules, and S
 vendor/bin/pest --flow-impact
 vendor/bin/pest --flow-impact=origin/main
 vendor/bin/pest --flow-impact --flow-json
+php vendor/bin/pest --flow-tia-fresh
 ```
 
-Pest Flow uses Pest 5's TIA graph and reports `test-file` precision. It lists every Flow scenario registered in an affected test file, but it cannot identify individual affected cases in a mixed test file. Record the graph first with `vendor/bin/pest --tia`. The first baseline run executes tests and requires PCOV or Xdebug. See the [impact analysis guide](docs/impact-analysis.mdx) for result states and comparison-base behavior.
+Pest Flow uses Pest 5's TIA graph and reports `test-file` precision. It lists every Flow scenario registered in an affected test file, but it cannot identify individual affected cases in a mixed test file. Create or refresh the graph with `php vendor/bin/pest --flow-tia-fresh`; the command enables Xdebug coverage only in its child process and works across shells. The PHP CLI needs Xdebug or enabled PCOV. See the [impact analysis guide](docs/impact-analysis.mdx) for result states and comparison-base behavior.
 
 ### Living documentation
 

@@ -13,6 +13,7 @@ use Pest\Flow\Impact\ImpactResolver;
 use Pest\Flow\Impact\ImpactStatus;
 use Pest\Flow\Impact\PestChangedFilesSource;
 use Pest\Flow\Impact\PestTiaImpactProvider;
+use Pest\Flow\Impact\TiaFreshRunner;
 use Pest\Flow\Model\ExecutionStatus;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -50,6 +51,10 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
     private bool $impactEnabled = false;
 
+    private bool $tiaFreshEnabled = false;
+
+    private ?string $tiaFreshError = null;
+
     private ?string $impactBase = null;
 
     private ?string $impactError = null;
@@ -79,11 +84,12 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
     {
         EventFacade::instance()->registerSubscriber(new ImpactQuerySubscriber($this));
         EventFacade::instance()->registerSubscriber(new AgentQuerySubscriber($this));
+        EventFacade::instance()->registerSubscriber(new TiaFreshSubscriber($this));
     }
 
     public function shouldRunImpactBeforeTests(): bool
     {
-        return $this->impactEnabled;
+        return $this->impactEnabled && ! $this->tiaFreshEnabled;
     }
 
     public function runImpactBeforeTests(): never
@@ -93,7 +99,7 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
     public function shouldRunAgentQueryBeforeTests(): bool
     {
-        if (! $this->agentQueryEnabled) {
+        if (! $this->agentQueryEnabled || $this->tiaFreshEnabled) {
             return false;
         }
 
@@ -139,6 +145,21 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         exit($this->addAgentQueryOutput(0));
     }
 
+    public function shouldRunTiaFreshBeforeTests(): bool
+    {
+        return $this->tiaFreshEnabled;
+    }
+
+    public function runTiaFreshBeforeTests(): never
+    {
+        if ($this->tiaFreshError !== null) {
+            $this->writeError($this->tiaFreshError);
+            exit(1);
+        }
+
+        exit((new TiaFreshRunner)->run(TestSuite::getInstance()->rootPath));
+    }
+
     /**
      * @param  array<int, string>  $arguments
      * @return array<int, string>
@@ -154,6 +175,8 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         $this->jsonOutputPath = null;
         $this->agentQueryEnabled = false;
         $this->impactEnabled = false;
+        $this->tiaFreshEnabled = false;
+        $this->tiaFreshError = null;
         $this->impactBase = null;
         $this->impactError = null;
         $this->agentIncludeSteps = false;
@@ -192,6 +215,12 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
             if (! $afterSeparator && $argument === '--flow') {
                 $this->enabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && $argument === '--flow-tia-fresh') {
+                $this->tiaFreshEnabled = true;
 
                 continue;
             }
@@ -356,6 +385,23 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             $this->impactError = 'Do not pass test paths with --flow-impact.';
         }
 
+        $tiaFreshArguments = $remaining;
+        $serverArguments = $_SERVER['argv'] ?? null;
+        $serverScript = is_array($serverArguments) ? ($serverArguments[0] ?? null) : null;
+
+        if (is_string($serverScript) && ($tiaFreshArguments[0] ?? null) === $serverScript) {
+            array_shift($tiaFreshArguments);
+        }
+
+        if ($this->tiaFreshEnabled && ($this->enabled
+            || $this->jsonEnabled
+            || $this->documentationEnabled
+            || $this->agentQueryEnabled
+            || $this->impactEnabled
+            || $tiaFreshArguments !== [])) {
+            $this->tiaFreshError = 'Run --flow-tia-fresh by itself; it records a fresh graph by running the full Pest suite.';
+        }
+
         $executionFilter = $this->executionFilter($hasNativeTestSelector);
 
         if ($executionFilter !== null) {
@@ -368,7 +414,10 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             }
         }
 
-        if ($this->impactEnabled || $this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) {
+        if ($this->impactEnabled
+            || $this->agentQueryEnabled
+            || $this->tiaFreshEnabled
+            || ($this->jsonEnabled && ! $this->jsonOutputToFile)) {
             // Pest's Collision printer writes its own progress and recap regardless of --no-output.
             // Disable it so agent output can remain clean and predictable.
             unset($_SERVER['COLLISION_PRINTER']);
