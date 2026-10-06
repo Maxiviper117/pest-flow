@@ -13,14 +13,16 @@ Run `--flow-list` to list Features, Rules, and Scenarios without executing scena
 vendor/bin/pest --flow-list
 ```
 
-The text output includes scenario and step source locations, plus the current status. Before tests run, scenarios are `pending` and step lists may be empty.
+The text output includes tags, scenario and step source locations, plus the current status. Before tests run, scenarios are `pending` and step lists may be empty.
 
 ## Search and filter
 
-Search behaviour names and tags with a case-insensitive substring:
+By default, search matches names and tags with a case-insensitive substring. Use comma-separated values with `--flow-search-in` to restrict it to one or more fields:
 
 ```sh
-vendor/bin/pest --flow-search="invoice cancellation"
+vendor/bin/pest --flow-search="invoice cancellation" --flow-search-in=name
+vendor/bin/pest --flow-search="billing" --flow-search-in=tag
+vendor/bin/pest --flow-search="billing" --flow-search-in=name,tag
 ```
 
 Combine search with lightweight filters:
@@ -51,13 +53,13 @@ The schema includes IDs, parent-child relationships, tags, source locations, sta
 vendor/bin/pest --flow-list --flow-status=failed --flow-json
 ```
 
-Step declarations live inside scenario callbacks. To search step descriptions, explicitly ask Pest to run those callbacks:
+Step declarations live inside scenario callbacks. `--flow-search-in=step` searches only step descriptions and explicitly runs those callbacks:
 
 ```sh
-vendor/bin/pest --flow-search="purchase order" --flow-search-steps --flow-json
+vendor/bin/pest --flow-search="purchase order" --flow-search-in=step --flow-json
 ```
 
-The command then reports the collected step text and execution metadata. Ordinary list and name/tag searches collect the behaviour hierarchy before running callbacks. No PHP source parsing or agent-specific behaviour model is used.
+The older `--flow-search-steps` option remains available to add step descriptions to the default name and tag fields. Feature and Rule filters, plus name-only searches, also narrow which Pest tests execute when their names match Pest's test names. Tag and source filters narrow the reported results; Pest's native `--group` and `--filter` options can further constrain execution. Existing native selectors are preserved and disable automatic name scoping. Ordinary list and name/tag searches collect the behaviour hierarchy before running callbacks. No PHP source parsing or agent-specific behaviour model is used.
 
 Status filtering and step-text search are unavailable with `--parallel` because execution metadata is process-local.
 

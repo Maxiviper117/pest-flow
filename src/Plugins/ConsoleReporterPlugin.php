@@ -46,6 +46,11 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
     private ?string $agentSearch = null;
 
+    /**
+     * @var list<string>|null
+     */
+    private ?array $agentSearchIn = null;
+
     private ?string $agentFeatureFilter = null;
 
     private ?string $agentRuleFilter = null;
@@ -78,6 +83,18 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             $this->agentSourceFilter,
         ] as $filter) {
             if ($filter !== null && trim($filter) === '') {
+                return true;
+            }
+        }
+
+        if ($this->agentSearchIn !== null) {
+            foreach ($this->agentSearchIn as $field) {
+                if (! in_array(strtolower(trim($field)), ['name', 'tag', 'step'], true)) {
+                    return true;
+                }
+            }
+
+            if ($this->agentSearchIn === []) {
                 return true;
             }
         }
@@ -115,6 +132,7 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         $this->agentQueryEnabled = false;
         $this->agentIncludeSteps = false;
         $this->agentSearch = null;
+        $this->agentSearchIn = null;
         $this->agentFeatureFilter = null;
         $this->agentRuleFilter = null;
         $this->agentTagFilter = null;
@@ -123,6 +141,7 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         $remaining = [];
         $afterSeparator = false;
         $hasNoOutput = false;
+        $hasNativeTestSelector = false;
 
         foreach ($arguments as $argument) {
             if ($argument === '--' && ! $afterSeparator) {
@@ -135,6 +154,14 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
                 $remaining[] = $argument;
 
                 continue;
+            }
+
+            if (! $afterSeparator && (
+                in_array($argument, ['--filter', '--group'], true)
+                || str_starts_with($argument, '--filter=')
+                || str_starts_with($argument, '--group=')
+            )) {
+                $hasNativeTestSelector = true;
             }
 
             if (! $afterSeparator && $argument === '--flow') {
@@ -152,6 +179,18 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             if (! $afterSeparator && str_starts_with($argument, '--flow-search=')) {
                 $this->agentQueryEnabled = true;
                 $this->agentSearch = substr($argument, strlen('--flow-search='));
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-search-in=')) {
+                $this->agentQueryEnabled = true;
+                $this->agentSearchIn = array_map(trim(...), explode(',', substr($argument, strlen('--flow-search-in='))));
+                $this->agentIncludeSteps = $this->agentIncludeSteps || in_array(
+                    'step',
+                    array_map(strtolower(...), $this->agentSearchIn),
+                    true,
+                );
 
                 continue;
             }
@@ -245,6 +284,18 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             $remaining[] = '--no-output';
         }
 
+        $executionFilter = $this->executionFilter($hasNativeTestSelector);
+
+        if ($executionFilter !== null) {
+            $separator = array_search('--', $remaining, true);
+
+            if ($separator === false) {
+                $remaining[] = '--filter='.$executionFilter;
+            } else {
+                array_splice($remaining, $separator, 0, ['--filter='.$executionFilter]);
+            }
+        }
+
         if ($this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) {
             // Pest's Collision printer writes its own progress and recap regardless of --no-output.
             // Disable it so agent output can remain clean and predictable.
@@ -301,6 +352,10 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         }
 
         try {
+            if ($this->agentSearchIn !== null && $this->agentSearch === null) {
+                throw new \InvalidArgumentException('--flow-search-in requires --flow-search=QUERY.');
+            }
+
             if ($this->agentIncludeSteps && $this->agentSearch === null) {
                 throw new \InvalidArgumentException('--flow-search-steps requires --flow-search=QUERY.');
             }
@@ -314,6 +369,7 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
                 tag: $this->agentTagFilter,
                 status: $this->agentStatusFilter,
                 source: $this->agentSourceFilter,
+                searchIn: $this->searchFields(),
             );
 
             if ($this->jsonEnabled) {
@@ -358,6 +414,57 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
             return $exitCode === 0 ? 1 : $exitCode;
         }
+    }
+
+    private function executionFilter(bool $hasNativeTestSelector): ?string
+    {
+        if ($hasNativeTestSelector || $this->parallel || ($this->agentStatusFilter === null && ! $this->agentIncludeSteps)) {
+            return null;
+        }
+
+        $selectors = array_values(array_filter([
+            $this->agentFeatureFilter,
+            $this->agentRuleFilter,
+        ]));
+
+        if ($selectors === [] && $this->agentSearch !== null && $this->searchFields() === ['name']) {
+            $selectors[] = $this->agentSearch;
+        }
+
+        $patterns = [];
+
+        foreach ($selectors as $selector) {
+            $tokens = preg_split('/[^\p{L}\p{N}]+/u', $selector, -1, PREG_SPLIT_NO_EMPTY);
+
+            if ($tokens === false || $tokens === []) {
+                continue;
+            }
+
+            $patterns[] = implode('.*', array_map(preg_quote(...), $tokens));
+        }
+
+        if ($patterns === []) {
+            return null;
+        }
+
+        return implode('.*', $patterns);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchFields(): array
+    {
+        $fields = $this->agentSearchIn ?? ['name', 'tag'];
+
+        if ($this->agentIncludeSteps) {
+            $fields[] = 'step';
+        }
+
+        return array_values(array_unique(array_map(
+            static fn (string $field): string => strtolower(trim($field)),
+            $fields,
+        )));
     }
 
     private function addDocumentationOutput(int $exitCode): int

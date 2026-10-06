@@ -97,7 +97,7 @@ it('keeps the versioned JSON schema when exporting a filtered tree', function ()
     $rule->addScenario($matching);
     $rule->addScenario($other);
     $feature->addRule($rule);
-    $query = new BehaviourQuery([$feature], [], search: 'accepted');
+    $query = new BehaviourQuery([$feature], [], search: 'accepted', searchIn: ['step']);
 
     $document = json_decode(
         (new JsonReporter)->render([$feature], [], $query),

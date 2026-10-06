@@ -56,8 +56,14 @@ final readonly class BehaviourQuery
     private ?string $sourceFilter;
 
     /**
+     * @var list<string>
+     */
+    private array $searchFields;
+
+    /**
      * @param  list<FeatureNode>  $features
      * @param  list<ScenarioNode>  $standaloneScenarios
+     * @param  list<string>  $searchIn
      */
     public function __construct(
         array $features,
@@ -68,6 +74,7 @@ final readonly class BehaviourQuery
         ?string $tag = null,
         ?string $status = null,
         ?string $source = null,
+        array $searchIn = ['name', 'tag'],
     ) {
         $this->search = $this->normalize($search, 'Search text');
         $this->featureFilter = $this->normalize($feature, 'Feature filter');
@@ -76,6 +83,20 @@ final readonly class BehaviourQuery
         $normalizedStatus = $this->normalize($status, 'Status filter');
         $this->statusFilter = $normalizedStatus === null ? null : strtolower($normalizedStatus);
         $this->sourceFilter = $this->normalize($source, 'Source filter');
+        $this->searchFields = array_values(array_unique(array_map(
+            static fn (string $field): string => strtolower(trim($field)),
+            $searchIn,
+        )));
+
+        if ($this->searchFields === []) {
+            throw new InvalidArgumentException('Search fields cannot be empty.');
+        }
+
+        foreach ($this->searchFields as $field) {
+            if (! in_array($field, ['name', 'tag', 'step'], true)) {
+                throw new InvalidArgumentException(sprintf('Unsupported search field "%s". Expected one of: name, tag, step.', $field));
+            }
+        }
 
         if ($this->statusFilter !== null && ExecutionStatus::tryFrom($this->statusFilter) === null) {
             $statuses = implode(', ', array_map(static fn (ExecutionStatus $executionStatus): string => $executionStatus->value, ExecutionStatus::cases()));
@@ -247,18 +268,21 @@ final readonly class BehaviourQuery
     private function matchesSearch(array $nodes, array $steps): bool
     {
         foreach ($nodes as $node) {
-            if ($this->contains($node->name, $this->search ?? '')) {
+            if (in_array('name', $this->searchFields, true) && $this->contains($node->name, $this->search ?? '')) {
                 return true;
             }
 
-            foreach ($node->tags() as $tag) {
-                if ($this->contains($tag, $this->search ?? '')) {
-                    return true;
+            if (in_array('tag', $this->searchFields, true)) {
+                foreach ($node->tags() as $tag) {
+                    if ($this->contains($tag, $this->search ?? '')) {
+                        return true;
+                    }
                 }
             }
         }
 
-        return array_any($steps, fn (StepNode $step): bool => $this->contains($step->description, $this->search ?? ''));
+        return in_array('step', $this->searchFields, true)
+            && array_any($steps, fn (StepNode $step): bool => $this->contains($step->description, $this->search ?? ''));
     }
 
     /**

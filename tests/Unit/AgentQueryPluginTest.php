@@ -10,7 +10,7 @@ it('consumes agent query options and suppresses Pest output', function (): void 
     $arguments = $plugin->handleArguments([
         '--flow-list',
         '--flow-search=invoice',
-        '--flow-search-steps',
+        '--flow-search-in=step',
         '--flow-feature=billing',
         '--flow-rule=payments',
         '--flow-tag=critical',
@@ -23,7 +23,32 @@ it('consumes agent query options and suppresses Pest output', function (): void 
     expect($arguments)->toBe([
         'tests/Feature/InvoiceTest.php',
         '--no-output',
+        '--filter=billing.*payments',
     ]);
+});
+
+it('uses Pest test-name filters to narrow execution-dependent queries', function (): void {
+    $plugin = new ConsoleReporterPlugin(new BufferedOutput);
+    $arguments = $plugin->handleArguments([
+        '--flow-status=passed',
+        '--flow-feature=Invoice approvals',
+        '--flow-rule=Purchase orders',
+        'tests/Feature/InvoiceTest.php',
+    ]);
+
+    expect($arguments)->toContain('--filter=Invoice.*approvals.*Purchase.*orders')
+        ->and($plugin->shouldRunAgentQueryBeforeTests())->toBeFalse();
+});
+
+it('respects an existing Pest test selector when running agent queries', function (): void {
+    $plugin = new ConsoleReporterPlugin(new BufferedOutput);
+    $arguments = $plugin->handleArguments([
+        '--flow-status=passed',
+        '--flow-feature=Invoice',
+        '--filter=invoice-test',
+    ]);
+
+    expect($arguments)->toBe(['--filter=invoice-test', '--no-output']);
 });
 
 it('leaves agent-like arguments untouched after the separator', function (): void {

@@ -24,6 +24,7 @@ $createBehaviourTree = static function (): array {
     $accepted->addStep(new StepNode(StepType::Then, 'the card is charged', new SourceLocation('tests/Feature/CheckoutTest.php', 19)));
 
     $expired = new ScenarioNode('Rejects expired cards', new SourceLocation('tests/Feature/CheckoutTest.php', 23), $authorization);
+    $expired->addTags('expired');
     $expired->addStep(new StepNode(StepType::Given, 'an expired card', new SourceLocation('tests/Feature/CheckoutTest.php', 25)));
     $expired->addStep(new StepNode(StepType::Then, 'the expired card is declined', new SourceLocation('tests/Feature/CheckoutTest.php', 27)));
     $expired->startExecution();
@@ -48,7 +49,7 @@ $createBehaviourTree = static function (): array {
 
 it('searches step metadata while preserving the feature and rule context', function () use ($createBehaviourTree): void {
     [$payments, $refunds, $standalone] = $createBehaviourTree();
-    $query = new BehaviourQuery([$payments, $refunds], [$standalone], search: 'EXPIRED CARD IS DECLINED');
+    $query = new BehaviourQuery([$payments, $refunds], [$standalone], search: 'EXPIRED CARD IS DECLINED', searchIn: ['step']);
 
     expect($query->features())->toHaveCount(1)
         ->and($query->features()[0]->name)->toBe('Payments')
@@ -56,6 +57,19 @@ it('searches step metadata while preserving the feature and rule context', funct
         ->and($query->scenariosFor($query->rulesFor($query->features()[0])[0]))->toHaveCount(1)
         ->and($query->scenariosFor($query->rulesFor($query->features()[0])[0])[0]->name)->toBe('Rejects expired cards')
         ->and($query->stepsFor($query->scenariosFor($query->rulesFor($query->features()[0])[0])[0]))->toHaveCount(2);
+});
+
+it('scopes searches to the requested fields', function () use ($createBehaviourTree): void {
+    [$payments, $refunds, $standalone] = $createBehaviourTree();
+    $tagOnly = new BehaviourQuery([$payments, $refunds], [$standalone], search: 'billing', searchIn: ['tag']);
+    $nameOnly = new BehaviourQuery([$payments, $refunds], [$standalone], search: 'billing', searchIn: ['name']);
+    $stepOnly = new BehaviourQuery([$payments, $refunds], [$standalone], search: 'expired card', searchIn: ['step']);
+
+    expect($tagOnly->features())->toHaveCount(1)
+        ->and($tagOnly->scenariosFor($tagOnly->rulesFor($tagOnly->features()[0])[0]))->toHaveCount(2)
+        ->and($nameOnly->hasResults())->toBeFalse()
+        ->and($stepOnly->features())->toHaveCount(1)
+        ->and($stepOnly->scenariosFor($stepOnly->rulesFor($stepOnly->features()[0])[0]))->toHaveCount(1);
 });
 
 it('matches inherited feature and rule tags as well as direct scenario tags', function () use ($createBehaviourTree): void {
@@ -105,8 +119,9 @@ it('renders compact hierarchy, execution state, and source locations', function 
     $output = (new AgentListReporter)->render($query);
 
     expect($output)->toContain('Feature: Payments')
-        ->and($output)->toContain('  Rule: Cards need authorization')
-        ->and($output)->toContain('Scenario [failed]: Rejects expired cards (tests/Feature/CheckoutTest.php:23)')
+        ->and($output)->toContain('Feature: Payments [tags: billing]')
+        ->and($output)->toContain('  Rule: Cards need authorization [tags: critical]')
+        ->and($output)->toContain('Scenario [failed]: Rejects expired cards [tags: expired] (tests/Feature/CheckoutTest.php:23)')
         ->and($output)->toContain('Then [pending]: the expired card is declined (tests/Feature/CheckoutTest.php:27)');
 });
 
@@ -114,5 +129,7 @@ it('rejects empty search and unsupported status values', function (): void {
     expect(fn () => new BehaviourQuery([], [], search: '  '))
         ->toThrow(InvalidArgumentException::class, 'Search text cannot be empty.')
         ->and(fn () => new BehaviourQuery([], [], status: 'broken'))
-        ->toThrow(InvalidArgumentException::class, 'Unsupported status "broken"');
+        ->toThrow(InvalidArgumentException::class, 'Unsupported status "broken"')
+        ->and(fn () => new BehaviourQuery([], [], search: 'card', searchIn: ['step-description']))
+        ->toThrow(InvalidArgumentException::class, 'Unsupported search field "step-description"');
 });

@@ -22,16 +22,17 @@ final class AgentListReporter
         $lines = [];
 
         foreach ($query->features() as $feature) {
-            $lines[] = 'Feature: '.$feature->name;
+            $lines[] = $this->withTags('Feature: '.$feature->name, $feature->tags());
 
             foreach ($query->rulesFor($feature) as $rule) {
-                $lines[] = '  Rule: '.$rule->name;
+                $lines[] = $this->withTags('  Rule: '.$rule->name, $rule->tags());
 
                 foreach ($query->scenariosFor($rule) as $scenario) {
                     $lines[] = sprintf(
-                        '    Scenario [%s]: %s (%s:%d)',
+                        '    Scenario [%s]: %s%s (%s:%d)',
                         $scenario->status->value,
                         $scenario->name,
+                        $this->tagSuffix($scenario->tags()),
                         $scenario->source->file,
                         $scenario->source->line,
                     );
@@ -52,9 +53,10 @@ final class AgentListReporter
 
         foreach ($query->standaloneScenarios() as $scenario) {
             $lines[] = sprintf(
-                'Scenario [%s]: %s (%s:%d)',
+                'Scenario [%s]: %s%s (%s:%d)',
                 $scenario->status->value,
                 $scenario->name,
+                $this->tagSuffix($scenario->tags()),
                 $scenario->source->file,
                 $scenario->source->line,
             );
@@ -72,5 +74,21 @@ final class AgentListReporter
         }
 
         return implode(PHP_EOL, $lines).PHP_EOL;
+    }
+
+    /**
+     * @param  list<string>  $tags
+     */
+    private function withTags(string $label, array $tags): string
+    {
+        return $label.$this->tagSuffix($tags);
+    }
+
+    /**
+     * @param  list<string>  $tags
+     */
+    private function tagSuffix(array $tags): string
+    {
+        return $tags === [] ? '' : ' [tags: '.implode(', ', $tags).']';
     }
 }
