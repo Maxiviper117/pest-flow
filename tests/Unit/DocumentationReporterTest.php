@@ -34,7 +34,7 @@ it('renders the behaviour hierarchy, metadata, counts, and safe text', function 
         ->and($html)->toContain('Payments &amp; refunds')
         ->and($html)->toContain('a card named &lt;script&gt;')
         ->and($html)->not->toContain('a card named <script>')
-        ->and($html)->toContain('href="#checkout-risk/payments-refunds/charges-a-card"')
+        ->and($html)->toContain('href="#scenario-checkout-risk/payments-refunds/charges-a-card"')
         ->and($html)->toContain('billing')
         ->and($html)->toContain('critical')
         ->and($html)->toContain('cards')
@@ -49,7 +49,15 @@ it('renders the behaviour hierarchy, metadata, counts, and safe text', function 
         ->and($html)->toContain('<dt>Rules</dt><dd>1</dd>')
         ->and($html)->toContain('<dt>Scenarios</dt><dd>1</dd>')
         ->and($html)->toContain('<dt>Recorded steps</dt><dd>1</dd>')
-        ->and($html)->toContain('<strong>Passed</strong>')
+        ->and($html)->toContain('<span class="status-label">Passed</span>')
+        ->and($html)->toContain('class="steps flow"')
+        ->and($html)->toContain('data-copy="tests/Checkout.php:12"')
+        ->and($html)->toContain('id="filter-search"')
+        ->and($html)->toContain('id="filter-status"')
+        ->and($html)->toContain('id="filter-tag"')
+        ->and($html)->toContain('id="filter-feature"')
+        ->and($html)->toContain('id="filter-rule"')
+        ->and($html)->toContain('id="filter-source"')
         ->and($html)->toContain('<span class="step-type">Given</span>');
 });
 
@@ -104,7 +112,7 @@ it('counts every scenario status and shows pending scenarios without recorded st
 
     $html = (new DocumentationReporter)->render([], [$passed, $failed, $skipped, $running, $pending]);
     $scenarioHtml = static function (ScenarioNode $scenario) use ($html): string {
-        $pattern = '~<article\\b[^>]*\\bid="'.preg_quote($scenario->id, '~').'"[^>]*>.*?</article>~s';
+        $pattern = '~<article\\b[^>]*\\bid="'.preg_quote('standalone-scenario-'.$scenario->id, '~').'"[^>]*>.*?</article>~s';
 
         if (preg_match($pattern, $html, $matches) !== 1) {
             return '';
@@ -119,11 +127,6 @@ it('counts every scenario status and shows pending scenarios without recorded st
         ->and($html)->toContain('<dt>Running</dt><dd>1</dd>')
         ->and($html)->toContain('<dt>Pending</dt><dd>1</dd>')
         ->and($html)->toContain('No steps were recorded in this run.')
-        ->and($scenarioHtml($passed))->toContain('<strong>Passed</strong>')
-        ->and($scenarioHtml($failed))->toContain('<strong>Failed</strong>')
-        ->and($scenarioHtml($skipped))->toContain('<strong>Skipped</strong>')
-        ->and($scenarioHtml($running))->toContain('<strong>Running</strong>')
-        ->and($scenarioHtml($pending))->toContain('<strong>Pending</strong>')
         ->and($scenarioHtml($passed))->toContain('<span class="status-label">Passed</span>')
         ->and($scenarioHtml($failed))->toContain('<span class="status-label">Failed</span>')
         ->and($scenarioHtml($skipped))->toContain('<span class="status-label">Skipped</span>')
@@ -174,4 +177,36 @@ it('counts definitions across features and standalone scenarios and counts only 
         ->and($html)->toContain('<dt>Recorded steps</dt><dd>3</dd>')
         ->and($html)->toContain('<dt>Passed</dt><dd>3</dd>')
         ->and($html)->toContain('<dt>Pending</dt><dd>2</dd>');
+});
+
+it('embeds the versioned JSON document safely for a local interactive viewer', function (): void {
+    $feature = new FeatureNode('Checkout', new SourceLocation('tests/Checkout.php', 1));
+    $rule = new RuleNode('Payments', new SourceLocation('tests/Checkout.php', 3), $feature);
+    $scenario = new ScenarioNode('Reject unsafe card text', new SourceLocation('tests/Checkout.php', 5), $rule);
+    $step = new StepNode(StepType::When, '</script><script>alert(1)</script>', new SourceLocation('tests/Checkout.php', 7));
+
+    $feature->addTags('billing');
+    $rule->addTags('critical');
+    $feature->addRule($rule);
+    $rule->addScenario($scenario);
+    $scenario->addStep($step);
+
+    $html = (new DocumentationReporter)->render([$feature], []);
+    preg_match('~<script id="flow-document" type="application/json">(.*?)</script>~s', $html, $matches);
+    $document = json_decode($matches[1] ?? '', true, 512, JSON_THROW_ON_ERROR);
+
+    expect($document['schema_version'])->toBe(1)
+        ->and($document['features'][0]['tags'])->toBe(['billing'])
+        ->and($document['features'][0]['rules'][0]['tags'])->toBe(['critical'])
+        ->and($document['features'][0]['rules'][0]['scenarios'][0]['steps'][0]['text'])
+        ->toBe('</script><script>alert(1)</script>')
+        ->and($html)->not->toContain('</script><script>alert(1)</script>')
+        ->and($html)->toContain('Scenario status: 1 pending, 0 running, 0 passed, 0 failed, 0 skipped')
+        ->and($html)->toContain('JSON.parse(documentElement.textContent)')
+        ->and($html)->toContain('metadata.tags.includes(filters.tag)')
+        ->and($html)->toContain('metadata.statuses.includes(filters.status)')
+        ->and($html)->toContain('metadata.sourceFiles.includes(filters.source)')
+        ->and($html)->toContain("document.querySelector('nav').addEventListener('click'")
+        ->and($html)->toContain('Copy location')
+        ->and($html)->toContain('Unsupported schema version.');
 });

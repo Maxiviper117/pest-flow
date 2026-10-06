@@ -128,7 +128,7 @@ The output directory must already exist. Schema version 1 includes Features, Rul
 
 ### Living documentation
 
-Generate a self-contained HTML report after Pest runs the tests:
+Generate a self-contained interactive behaviour viewer after Pest runs the tests:
 
 ```sh
 vendor/bin/pest --flow-report
@@ -143,9 +143,10 @@ To choose another output directory, pass it after `=`:
 vendor/bin/pest --flow-report=build/behaviour
 ```
 
-The report includes navigation, suite counts, behaviour nodes, recorded steps, direct tags, source
-locations, and execution data when available. It has a light and dark theme toggle. The HTML file
-needs no server or external assets.
+The viewer includes search across feature, rule, scenario, step, and tag text; filters for status,
+tag, feature, rule, and source file; an expandable Given/When/Then scenario flow; source-location
+copy controls; suite counts; and execution data when available. It has a light and dark theme
+toggle. The HTML file needs no server or external assets.
 
 The report is unavailable with `--parallel` because worker registries are process-local. See the
 [living documentation guide](docs/living-documentation.mdx).
@@ -254,6 +255,18 @@ composer test
 
 `composer test` runs the Rector dry-run check, Pint formatting, PHPStan at level 10, and the Pest
 test suite. Run Composer metadata validation separately with `composer validate --strict`.
+
+The static report's browser interactions are covered with Pest's Playwright-based browser plugin.
+Install Chromium once, then run the report tests:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+composer test:browser
+```
+
+These tests run a Pest fixture to generate a real report, open it from the local filesystem and a
+local HTTP server, and exercise the report in Chromium.
 
 The documentation site uses pnpm and Node.js 22.12 or newer:
 

@@ -23,7 +23,8 @@
         ]
     },
     "require-dev": {
-        "pestphp/pest-dev-tools": "^5.0.0"
+        "pestphp/pest-dev-tools": "^5.0.0",
+        "pestphp/pest-plugin-browser": "^5.1.2"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -47,6 +48,7 @@
         "test:lint": "pint --test",
         "test:types": "phpstan analyse --ansi",
         "test:unit": "pest --colors=always",
+        "test:browser": "pest --bootstrap=tests/Browser/bootstrap.php tests/Browser",
         "test": [
             "@test:refacto",
             "@test:lint",
