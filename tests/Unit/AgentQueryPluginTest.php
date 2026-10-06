@@ -27,6 +27,45 @@ it('consumes agent query options and suppresses Pest output', function (): void 
     ]);
 });
 
+it('consumes behaviour impact options and preserves the read-only query hook', function (): void {
+    $plugin = new ConsoleReporterPlugin(new BufferedOutput);
+    $arguments = $plugin->handleArguments(['--flow-impact=origin/main', '--flow-json']);
+
+    expect($arguments)->toBe(['--no-output'])
+        ->and($plugin->shouldRunImpactBeforeTests())->toBeTrue();
+});
+
+it('does not treat Pest’s argv script path as an explicit test path', function (): void {
+    $output = new BufferedOutput;
+    $plugin = new ConsoleReporterPlugin($output);
+    $script = $_SERVER['argv'][0] ?? 'pest';
+    $plugin->handleArguments([$script, '--flow-impact', '--flow-list']);
+    $exitCode = $plugin->addOutput(0);
+    $message = $output->fetch();
+
+    expect($exitCode)->toBe(1)
+        ->and($message)->toContain('Use --flow-impact separately')
+        ->and($message)->not->toContain('Do not pass test paths');
+});
+
+it('rejects behaviour impact combined with another Flow query', function (): void {
+    $output = new BufferedOutput;
+    $plugin = new ConsoleReporterPlugin($output);
+    $plugin->handleArguments(['--flow-impact', '--flow-list']);
+
+    expect($plugin->addOutput(0))->toBe(1)
+        ->and($output->fetch())->toContain('Use --flow-impact separately');
+});
+
+it('does not parse impact-like arguments after the Pest separator', function (): void {
+    $plugin = new ConsoleReporterPlugin(new BufferedOutput);
+
+    expect($plugin->handleArguments(['--', '--flow-impact']))
+        ->toBe(['--', '--flow-impact'])
+        ->and($plugin->shouldRunImpactBeforeTests())->toBeFalse()
+        ->and($plugin->addOutput(0))->toBe(0);
+});
+
 it('uses Pest test-name filters to narrow execution-dependent queries', function (): void {
     $plugin = new ConsoleReporterPlugin(new BufferedOutput);
     $arguments = $plugin->handleArguments([

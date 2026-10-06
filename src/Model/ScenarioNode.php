@@ -23,6 +23,7 @@ final class ScenarioNode implements TaggableNode
         public readonly string $name,
         public readonly SourceLocation $source,
         public readonly ?RuleNode $rule = null,
+        public readonly ?string $pestTestFile = null,
     ) {
         $this->id = $rule instanceof RuleNode
             ? NodeIdentifier::child($rule->id, $name)

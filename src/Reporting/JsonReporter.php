@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Pest\Flow\Reporting;
 
 use JsonException;
+use Pest\Flow\Impact\ImpactFeature;
+use Pest\Flow\Impact\ImpactResult;
+use Pest\Flow\Impact\ImpactRule;
 use Pest\Flow\Model\FeatureNode;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -30,18 +33,61 @@ final class JsonReporter
         $features = $query?->features() ?? $features;
         $standaloneScenarios = $query?->standaloneScenarios() ?? $standaloneScenarios;
 
-        $json = json_encode(
-            [
-                'schema_version' => self::SCHEMA_VERSION,
-                'features' => array_map(
-                    fn (FeatureNode $feature): array => $this->feature($feature, $query),
-                    $features,
-                ),
-                'standalone_scenarios' => array_map(
-                    fn (ScenarioNode $scenario): array => $this->scenario($scenario, $query),
-                    $standaloneScenarios,
-                ),
+        return $this->encode([
+            'schema_version' => self::SCHEMA_VERSION,
+            'features' => array_map(
+                fn (FeatureNode $feature): array => $this->feature($feature, $query),
+                $features,
+            ),
+            'standalone_scenarios' => array_map(
+                fn (ScenarioNode $scenario): array => $this->scenario($scenario, $query),
+                $standaloneScenarios,
+            ),
+        ]);
+    }
+
+    /**
+     * Serializes an impact result without implying that its scenarios ran.
+     *
+     * @throws JsonException
+     */
+    public function renderImpact(ImpactResult $impact): string
+    {
+        return $this->encode([
+            'schema_version' => self::SCHEMA_VERSION,
+            'impact' => [
+                'status' => $impact->status->value,
+                'precision' => $impact->precision,
+                'base' => $impact->base,
+                'changed_files' => $impact->changedFiles,
+                'affected_test_files' => $impact->affectedTestFiles,
+                'unrepresented_test_files' => $impact->unrepresentedTestFiles,
+                'stale_test_files' => $impact->staleTestFiles,
+                'unknown_files' => $impact->unknownFiles,
+                'unattributed_test_files' => $impact->unattributedTestFiles,
+                'provenance' => (object) $impact->provenance,
+                'diagnostics' => $impact->diagnostics,
+                'summary' => [
+                    'feature_count' => $impact->featureCount(),
+                    'rule_count' => $impact->ruleCount(),
+                    'scenario_count' => $impact->scenarioCount(),
+                    'affected_test_file_count' => count($impact->affectedTestFiles),
+                ],
             ],
+            'features' => array_map($this->impactFeature(...), $impact->features),
+            'standalone_scenarios' => array_map($this->impactScenario(...), $impact->standaloneScenarios),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $document
+     *
+     * @throws JsonException
+     */
+    private function encode(array $document): string
+    {
+        $json = json_encode(
+            $document,
             JSON_PRETTY_PRINT
                 | JSON_UNESCAPED_SLASHES
                 | JSON_UNESCAPED_UNICODE
@@ -61,6 +107,56 @@ final class JsonReporter
         }
 
         return $json.PHP_EOL;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function impactFeature(ImpactFeature $feature): array
+    {
+        return [
+            'id' => $feature->node->id,
+            'name' => $feature->node->name,
+            'source' => $this->source($feature->node->source),
+            'tags' => $feature->node->tags(),
+            'rules' => array_map($this->impactRule(...), $feature->rules),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function impactRule(ImpactRule $rule): array
+    {
+        return [
+            'id' => $rule->node->id,
+            'name' => $rule->node->name,
+            'source' => $this->source($rule->node->source),
+            'tags' => $rule->node->tags(),
+            'scenarios' => array_map($this->impactScenario(...), $rule->scenarios),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function impactScenario(ScenarioNode $scenario): array
+    {
+        return [
+            'id' => $scenario->id,
+            'name' => $scenario->name,
+            'source' => $this->source($scenario->source),
+            'tags' => $scenario->tags(),
+            'steps' => array_map(
+                fn (StepNode $step): array => [
+                    'id' => $step->id,
+                    'type' => $step->type->value,
+                    'text' => $step->description,
+                    'source' => $this->source($step->source),
+                ],
+                $scenario->steps(),
+            ),
+        ];
     }
 
     /**
