@@ -9,6 +9,7 @@ use Pest\Flow\Model\ScenarioNode;
 use Pest\Flow\Model\SourceLocation;
 use Pest\Flow\Model\StepNode;
 use Pest\Flow\Model\StepType;
+use Pest\Flow\Query\BehaviourQuery;
 use Pest\Flow\Reporting\JsonReporter;
 
 it('uses two-space indentation', function (): void {
@@ -84,4 +85,31 @@ it('exports standalone scenarios separately and preserves pending metadata', fun
         ->and($document['standalone_scenarios'][0]['status'])->toBe(ExecutionStatus::Pending->value)
         ->and($document['standalone_scenarios'][0]['duration'])->toBeNull()
         ->and($document['standalone_scenarios'][0]['source'])->toBe(['file' => 'standalone.php', 'line' => 4]);
+});
+
+it('keeps the versioned JSON schema when exporting a filtered tree', function (): void {
+    $feature = new FeatureNode('Checkout', new SourceLocation('checkout.php', 1));
+    $rule = new RuleNode('Card payments', new SourceLocation('checkout.php', 3), $feature);
+    $matching = new ScenarioNode('accepts a valid card', new SourceLocation('checkout.php', 5), $rule);
+    $other = new ScenarioNode('rejects an expired card', new SourceLocation('checkout.php', 9), $rule);
+    $matching->addStep(new StepNode(StepType::Then, 'the payment is accepted', new SourceLocation('checkout.php', 7)));
+    $other->addStep(new StepNode(StepType::Then, 'the payment is declined', new SourceLocation('checkout.php', 11)));
+    $rule->addScenario($matching);
+    $rule->addScenario($other);
+    $feature->addRule($rule);
+    $query = new BehaviourQuery([$feature], [], search: 'accepted', searchIn: ['step']);
+
+    $document = json_decode(
+        (new JsonReporter)->render([$feature], [], $query),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+
+    expect($document['schema_version'])->toBe(1)
+        ->and($document['features'][0]['name'])->toBe('Checkout')
+        ->and($document['features'][0]['rules'][0]['scenarios'])->toHaveCount(1)
+        ->and($document['features'][0]['rules'][0]['scenarios'][0]['name'])->toBe('accepts a valid card')
+        ->and($document['features'][0]['rules'][0]['scenarios'][0]['steps'][0]['text'])->toBe('the payment is accepted')
+        ->and($document['standalone_scenarios'])->toBe([]);
 });

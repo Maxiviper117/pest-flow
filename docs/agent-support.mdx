@@ -1,0 +1,70 @@
+---
+title: Agent queries
+description: Inspect Pest Flow behaviour from coding agents and developer tools.
+---
+
+Pest Flow exposes the same registered behaviour model used by its reporters. These local, read-only commands let a coding agent inspect the feature hierarchy and source locations before changing application code.
+
+## List registered behaviour
+
+Run `--flow-list` to list Features, Rules, and Scenarios without executing scenario callbacks:
+
+```sh
+vendor/bin/pest --flow-list
+```
+
+The text output includes tags, scenario and step source locations, plus the current status. Before tests run, scenarios are `pending` and step lists may be empty.
+
+## Search and filter
+
+By default, search matches names and tags with a case-insensitive substring. Use comma-separated values with `--flow-search-in` to restrict it to one or more fields:
+
+```sh
+vendor/bin/pest --flow-search="invoice cancellation" --flow-search-in=name
+vendor/bin/pest --flow-search="billing" --flow-search-in=tag
+vendor/bin/pest --flow-search="billing" --flow-search-in=name,tag
+```
+
+Combine search with lightweight filters:
+
+```sh
+vendor/bin/pest --flow-list \
+  --flow-feature=Billing \
+  --flow-rule=Refunds \
+  --flow-tag=payments \
+  --flow-source=tests/Feature/InvoicesTest.php
+```
+
+Feature, Rule, and source filters use case-insensitive substrings. Tag filters match a complete tag and include descendants when the tag is on their Feature or Rule. Standalone Scenarios appear in results unless a Feature or Rule filter is used.
+
+Use `--flow-json` to emit the matching tree in the existing versioned JSON schema:
+
+```sh
+vendor/bin/pest --flow-search="invoice cancellation" --flow-json
+```
+
+The schema includes IDs, parent-child relationships, tags, source locations, statuses, durations, and recorded steps. No matches produce a valid document with empty feature and standalone scenario arrays. JSON is written by itself to standard output.
+
+## Execution state and steps
+
+`--flow-status` runs the Pest suite so the query can filter real execution results:
+
+```sh
+vendor/bin/pest --flow-list --flow-status=failed --flow-json
+```
+
+Step declarations live inside scenario callbacks. `--flow-search-in=step` searches only step descriptions and explicitly runs those callbacks:
+
+```sh
+vendor/bin/pest --flow-search="purchase order" --flow-search-in=step --flow-json
+```
+
+The older `--flow-search-steps` option remains available to add step descriptions to the default name and tag fields. Feature and Rule filters, plus name-only searches, also narrow which Pest tests execute when their names match Pest's test names. Tag and source filters narrow the reported results; Pest's native `--group` and `--filter` options can further constrain execution. Existing native selectors are preserved and disable automatic name scoping. Ordinary list and name/tag searches collect the behaviour hierarchy before running callbacks. No PHP source parsing or agent-specific behaviour model is used.
+
+Status filtering and step-text search are unavailable with `--parallel` because execution metadata is process-local.
+
+## Agent workflow
+
+Before an implementation change, search for the relevant domain, inspect the returned scenarios and source locations, then read those specifications and their implementation. After the change, run the relevant Pest tests and use `--flow-status` or `--flow-search-steps` when execution state or step text is needed.
+
+Pest Flow does not create tests, modify behaviour definitions, call AI providers, or transmit behaviour to an external service.

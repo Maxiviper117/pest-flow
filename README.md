@@ -11,6 +11,7 @@ Every scenario remains a normal Pest test. Pest Flow records the behaviour hiera
 - [Install](#install)
 - [Write and run a scenario](#write-and-run-a-scenario)
 - [Generate reports](#generate-reports)
+- [Agent queries](#agent-queries)
 - [Organize and filter scenarios](#organize-and-filter-scenarios)
 - [How scenarios run](#how-scenarios-run)
 - [Inspect the registry](#inspect-the-registry)
@@ -125,6 +126,30 @@ vendor/bin/pest --flow-json=build/flow.json
 ```
 
 The output directory must already exist. Schema version 1 includes Features, Rules, Scenarios, standalone scenarios, steps, IDs, source locations, direct tags, status, and duration. JSON export is unavailable with `--parallel`. See the [JSON export reference](docs/json-export.mdx) for the full schema.
+
+## Agent queries
+
+List registered Features, Rules, and Scenarios without running scenario callbacks:
+
+```sh
+vendor/bin/pest --flow-list
+```
+
+Search behaviour names and tags, or narrow the listing with feature, rule, tag, status, and source filters. Text listings include tags on each node:
+
+```sh
+vendor/bin/pest --flow-search="invoice cancellation" --flow-feature=Billing --flow-tag=payments
+```
+
+Add `--flow-json` to return the matching hierarchy in the existing versioned JSON format. Search fields default to names and tags; use `--flow-search-in=name`, `--flow-search-in=tag`, or a comma-separated list such as `--flow-search-in=name,tag` to scope a search. Step text can be searched by itself with `--flow-search-in=step`, which runs the Pest suite. The older `--flow-search-steps` flag remains available to include steps alongside the default name and tag fields:
+
+```sh
+vendor/bin/pest --flow-search="purchase order" --flow-search-in=step --flow-json
+```
+
+`--flow-status` and step-text search run the Pest suite to collect execution metadata. Feature and rule filters, plus name-only searches, also narrow which Pest tests execute when the names match Pest's test names. Tag and source filters narrow the reported results; use Pest's native `--group` or `--filter` options to further constrain execution. Existing native selectors are preserved and disable automatic name scoping. Status filtering and step-text search are unavailable with `--parallel` because execution metadata is process-local.
+
+Agent queries inspect Pest Flow metadata and do not edit tests or behaviour definitions.
 
 ### Living documentation
 
