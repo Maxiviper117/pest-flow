@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/Maxiviper117/pest-flow/compare/v0.7.2...v0.8.0) (2026-10-06)
+
+
+### Features
+
+* flow viewer ([#32](https://github.com/Maxiviper117/pest-flow/issues/32)) ([59f5aaf](https://github.com/Maxiviper117/pest-flow/commit/59f5aaf9eb0e3dc78bf02d1feeb0519ce9b2f5f9))
+
 ## [0.7.2](https://github.com/Maxiviper117/pest-flow/compare/v0.7.1...v0.7.2) (2026-10-04)
 
 
