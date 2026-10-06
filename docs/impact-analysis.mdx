@@ -1,0 +1,89 @@
+---
+title: Behaviour impact analysis
+description: Map changed files to Pest Flow scenarios selected by Pest's test-impact analysis.
+---
+
+# Behaviour impact analysis
+
+Pest Flow can translate Pest's test-impact analysis (TIA) result into Features, Rules, and Scenarios. It uses Pest's recorded dependency graph and does not build another dependency tracker.
+
+## Precision
+
+Pest 5 returns affected test files, not affected test cases. Pest Flow records each scenario's owning Pest test file separately from its declaration source location. It lists every registered Flow scenario whose owning test file matches an affected test file. Treat these scenarios as potentially affected. The result does not prove that each scenario has a direct dependency on each changed file.
+
+A test file can contain Flow scenarios and ordinary Pest tests. Pest does not identify which cases in an affected file were selected by TIA. Pest Flow reports affected files that contain no Flow scenarios. It does not count ordinary tests inside a mixed file.
+
+The report labels this limit as `test-file` precision. Pest TIA can use built-in framework mappings and broad watch-pattern fallbacks when a changed path has no direct graph edge. Reports preserve paths that Pest cannot account for and do not present a fallback as a direct dependency. File extensions alone do not prove that a changed file has no behavioural impact.
+
+## Record the Pest TIA graph
+
+Pest Flow needs an existing Pest TIA graph. Create or refresh it with:
+
+```sh
+php vendor/bin/pest --flow-tia-fresh
+```
+
+This runs `--tia --fresh` in a child PHP process and enables Xdebug coverage for that process. It
+does not change the current shell environment, so it works the same in PowerShell, Bash, and other
+shells. PCOV can be used instead when enabled. The PHP executable used to run Pest must have PCOV or
+Xdebug installed.
+
+The lower-level Pest command is also available when coverage is already configured:
+
+```sh
+php vendor/bin/pest --tia --fresh
+```
+
+The `--flow-impact` report reads the graph and stops before test execution. It still loads and collects the test files so Pest Flow can build the behaviour registry.
+
+## Report working-tree impact
+
+Run:
+
+```sh
+vendor/bin/pest --flow-impact
+```
+
+Pest's Git-based change list includes staged changes, unstaged changes, untracked files, and deleted paths. It excludes ignored files. Pest then selects affected test files from its TIA graph.
+
+To compare against a commit or branch that is an ancestor of `HEAD`, pass it after `=`:
+
+```sh
+vendor/bin/pest --flow-impact=origin/main
+```
+
+Pest includes commits after the base and working-tree changes. It rejects an unresolved base or a base that is not an ancestor of `HEAD`. Rebase or merge the base first, or pass an ancestor commit such as the merge base.
+
+The command does not run scenario callbacks. Use Pest's `--tia` command separately when you want to execute affected tests.
+
+## JSON output
+
+Write only the impact document to standard output:
+
+```sh
+vendor/bin/pest --flow-impact --flow-json
+```
+
+Write JSON to a file:
+
+```sh
+vendor/bin/pest --flow-impact --flow-json=build/impact.json
+```
+
+The impact object includes the status, comparison base, changed files, affected test files, file-level precision, provenance where Pest can provide it, unknown and stale paths, diagnostics, and counts. The hierarchy keeps source locations and tags. It omits execution status because the impact command does not run tests.
+
+## Result states
+
+| Status | Meaning |
+| --- | --- |
+| `resolved` | Pest returned affected test files and all changed paths have a graph or configured watch-pattern mapping. |
+| `no-impact` | Pest resolved the changed paths and selected no test files, or no changed files were found. |
+| `partially-resolved` | Pest returned useful test-file results, but some changed paths or test files remain unmapped or stale, or scenario ownership metadata is incomplete. |
+| `unknown` | At least one changed path has no direct mapping and Pest selected no test files for it. |
+| `unavailable` | The TIA graph is missing, unreadable, malformed, structurally stale, or unsupported by the installed Pest version. |
+
+`unknown` and `partially-resolved` are valid reports. `unavailable` returns a non-zero exit code. A valid `no-impact` result returns success.
+
+## Pest compatibility
+
+Pest Flow targets Pest 5. It reads Pest TIA classes that Pest marks as internal because Pest does not expose a public read-only impact query. Pest Flow isolates those calls in an adapter. If a Pest update changes the internal API, Pest Flow reports impact as unavailable until the adapter supports that version.

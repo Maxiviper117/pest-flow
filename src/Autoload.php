@@ -8,6 +8,7 @@ use Closure;
 use LogicException;
 use Pest\Flow\Dsl\TaggedGroupCall;
 use Pest\Flow\Dsl\TaggedScenarioCall;
+use Pest\Flow\Impact\PestTestFileLocator;
 use Pest\Flow\Model\FeatureNode;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -65,7 +66,7 @@ function scenario(string $name, Closure $definition): TaggedScenarioCall
         throw new LogicException('scenario() inside a feature() must be declared inside rule().');
     }
 
-    $scenario = new ScenarioNode($name, SourceLocation::capture(), $rule);
+    $scenario = new ScenarioNode($name, SourceLocation::capture(), $rule, PestTestFileLocator::current());
     $rule?->addScenario($scenario);
     FlowRegistry::registerScenario($scenario);
 

@@ -9,6 +9,11 @@ use Pest\Contracts\Plugins\AddsOutput;
 use Pest\Contracts\Plugins\Bootable;
 use Pest\Contracts\Plugins\HandlesArguments;
 use Pest\Flow\FlowRegistry;
+use Pest\Flow\Impact\ImpactResolver;
+use Pest\Flow\Impact\ImpactStatus;
+use Pest\Flow\Impact\PestChangedFilesSource;
+use Pest\Flow\Impact\PestTiaImpactProvider;
+use Pest\Flow\Impact\TiaFreshRunner;
 use Pest\Flow\Model\ExecutionStatus;
 use Pest\Flow\Model\RuleNode;
 use Pest\Flow\Model\ScenarioNode;
@@ -16,7 +21,9 @@ use Pest\Flow\Query\BehaviourQuery;
 use Pest\Flow\Reporting\AgentListReporter;
 use Pest\Flow\Reporting\ConsoleReporter;
 use Pest\Flow\Reporting\DocumentationReporter;
+use Pest\Flow\Reporting\ImpactReporter;
 use Pest\Flow\Reporting\JsonReporter;
+use Pest\TestSuite;
 use PHPUnit\Event\Facade as EventFacade;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -42,6 +49,16 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
     private bool $agentQueryEnabled = false;
 
+    private bool $impactEnabled = false;
+
+    private bool $tiaFreshEnabled = false;
+
+    private ?string $tiaFreshError = null;
+
+    private ?string $impactBase = null;
+
+    private ?string $impactError = null;
+
     private bool $agentIncludeSteps = false;
 
     private ?string $agentSearch = null;
@@ -65,12 +82,24 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
     public function boot(): void
     {
+        EventFacade::instance()->registerSubscriber(new ImpactQuerySubscriber($this));
         EventFacade::instance()->registerSubscriber(new AgentQuerySubscriber($this));
+        EventFacade::instance()->registerSubscriber(new TiaFreshSubscriber($this));
+    }
+
+    public function shouldRunImpactBeforeTests(): bool
+    {
+        return $this->impactEnabled && ! $this->tiaFreshEnabled;
+    }
+
+    public function runImpactBeforeTests(): never
+    {
+        exit($this->addImpactOutput(0));
     }
 
     public function shouldRunAgentQueryBeforeTests(): bool
     {
-        if (! $this->agentQueryEnabled) {
+        if (! $this->agentQueryEnabled || $this->tiaFreshEnabled) {
             return false;
         }
 
@@ -116,6 +145,21 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         exit($this->addAgentQueryOutput(0));
     }
 
+    public function shouldRunTiaFreshBeforeTests(): bool
+    {
+        return $this->tiaFreshEnabled;
+    }
+
+    public function runTiaFreshBeforeTests(): never
+    {
+        if ($this->tiaFreshError !== null) {
+            $this->writeError($this->tiaFreshError);
+            exit(1);
+        }
+
+        exit((new TiaFreshRunner)->run(TestSuite::getInstance()->rootPath));
+    }
+
     /**
      * @param  array<int, string>  $arguments
      * @return array<int, string>
@@ -130,6 +174,11 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         $this->jsonOutputToFile = false;
         $this->jsonOutputPath = null;
         $this->agentQueryEnabled = false;
+        $this->impactEnabled = false;
+        $this->tiaFreshEnabled = false;
+        $this->tiaFreshError = null;
+        $this->impactBase = null;
+        $this->impactError = null;
         $this->agentIncludeSteps = false;
         $this->agentSearch = null;
         $this->agentSearchIn = null;
@@ -170,8 +219,32 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
                 continue;
             }
 
+            if (! $afterSeparator && $argument === '--flow-tia-fresh') {
+                $this->tiaFreshEnabled = true;
+
+                continue;
+            }
+
             if (! $afterSeparator && $argument === '--flow-list') {
                 $this->agentQueryEnabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && $argument === '--flow-impact') {
+                $this->impactEnabled = true;
+
+                continue;
+            }
+
+            if (! $afterSeparator && str_starts_with($argument, '--flow-impact=')) {
+                $this->impactEnabled = true;
+                $base = substr($argument, strlen('--flow-impact='));
+                $this->impactBase = $base === '' ? null : $base;
+
+                if ($base === '') {
+                    $this->impactError = 'Pass a comparison base after --flow-impact=.';
+                }
 
                 continue;
             }
@@ -280,8 +353,53 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             $remaining[] = $argument;
         }
 
-        if (($this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) && ! $hasNoOutput) {
+        if (($this->impactEnabled || $this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) && ! $hasNoOutput) {
             $remaining[] = '--no-output';
+        }
+
+        if ($this->impactEnabled && $this->agentQueryEnabled) {
+            $this->impactError = 'Use --flow-impact separately from other Pest Flow queries.';
+        }
+
+        if ($this->impactEnabled && $this->documentationEnabled) {
+            $this->impactError = 'Use --flow-impact separately from --flow-report.';
+        }
+
+        if ($this->impactEnabled && $this->enabled) {
+            $this->impactError = 'Use --flow-impact separately from --flow.';
+        }
+
+        $serverArguments = $_SERVER['argv'] ?? null;
+        $hasTiaArgument = in_array('--tia', $arguments, true)
+            || (is_array($serverArguments) && in_array('--tia', $serverArguments, true));
+
+        if ($this->impactEnabled && $hasTiaArgument) {
+            $this->impactError = 'Use --flow-impact to report impact or --tia to run affected tests, but not both.';
+        }
+
+        if ($this->impactEnabled && $hasNativeTestSelector) {
+            $this->impactError = 'Do not combine --flow-impact with Pest test filters.';
+        }
+
+        if ($this->impactEnabled && $this->hasExplicitTestPath($arguments)) {
+            $this->impactError = 'Do not pass test paths with --flow-impact.';
+        }
+
+        $tiaFreshArguments = $remaining;
+        $serverArguments = $_SERVER['argv'] ?? null;
+        $serverScript = is_array($serverArguments) ? ($serverArguments[0] ?? null) : null;
+
+        if (is_string($serverScript) && ($tiaFreshArguments[0] ?? null) === $serverScript) {
+            array_shift($tiaFreshArguments);
+        }
+
+        if ($this->tiaFreshEnabled && ($this->enabled
+            || $this->jsonEnabled
+            || $this->documentationEnabled
+            || $this->agentQueryEnabled
+            || $this->impactEnabled
+            || $tiaFreshArguments !== [])) {
+            $this->tiaFreshError = 'Run --flow-tia-fresh by itself; it records a fresh graph by running the full Pest suite.';
         }
 
         $executionFilter = $this->executionFilter($hasNativeTestSelector);
@@ -296,7 +414,10 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
             }
         }
 
-        if ($this->agentQueryEnabled || ($this->jsonEnabled && ! $this->jsonOutputToFile)) {
+        if ($this->impactEnabled
+            || $this->agentQueryEnabled
+            || $this->tiaFreshEnabled
+            || ($this->jsonEnabled && ! $this->jsonOutputToFile)) {
             // Pest's Collision printer writes its own progress and recap regardless of --no-output.
             // Disable it so agent output can remain clean and predictable.
             unset($_SERVER['COLLISION_PRINTER']);
@@ -307,6 +428,10 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
 
     public function addOutput(int $exitCode): int
     {
+        if ($this->impactEnabled) {
+            return $this->addImpactOutput($exitCode);
+        }
+
         if ($this->agentQueryEnabled) {
             return $this->addAgentQueryOutput($exitCode);
         }
@@ -341,6 +466,78 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         $this->output->writeln(['', $report]);
 
         return $exitCode;
+    }
+
+    private function addImpactOutput(int $exitCode): int
+    {
+        if ($this->impactError !== null) {
+            $this->writeError($this->impactError);
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        if ($this->parallel) {
+            $this->writeError('Behaviour impact is unavailable with --parallel.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
+
+        try {
+            $projectRoot = TestSuite::getInstance()->rootPath;
+            $resolver = new ImpactResolver(
+                $projectRoot,
+                new PestChangedFilesSource($projectRoot),
+                new PestTiaImpactProvider(
+                    $projectRoot,
+                    diagnosticOutput: $this->output instanceof ConsoleOutputInterface
+                        ? $this->output->getErrorOutput()
+                        : null,
+                ),
+            );
+            $impact = $resolver->forWorkingTree(
+                $this->impactBase,
+                FlowRegistry::features(),
+                $this->standaloneScenarios(),
+            );
+
+            if ($this->jsonEnabled) {
+                if ($this->jsonOutputToFile && ($this->jsonOutputPath === null || $this->jsonOutputPath === '')) {
+                    $this->writeError('Pass a file path after --flow-json=.');
+
+                    return $exitCode === 0 ? 1 : $exitCode;
+                }
+
+                $json = (new JsonReporter)->renderImpact($impact);
+
+                if ($this->jsonOutputToFile) {
+                    $bytesWritten = @file_put_contents($this->jsonOutputPath, $json);
+
+                    if ($bytesWritten !== strlen($json)) {
+                        $this->writeError('The Pest Flow impact report could not be written to the requested file.');
+
+                        return $exitCode === 0 ? 1 : $exitCode;
+                    }
+                } else {
+                    $this->output->write($json);
+                }
+            } else {
+                $this->output->write((new ImpactReporter)->render($impact));
+            }
+
+            if ($impact->status === ImpactStatus::Unavailable) {
+                return $exitCode === 0 ? 1 : $exitCode;
+            }
+
+            return $exitCode;
+        } catch (JsonException) {
+            $this->writeError('The Pest Flow impact result could not be encoded as JSON.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        } catch (\Throwable) {
+            $this->writeError('Pest Flow could not produce the behaviour impact report.');
+
+            return $exitCode === 0 ? 1 : $exitCode;
+        }
     }
 
     private function addAgentQueryOutput(int $exitCode): int
@@ -448,6 +645,51 @@ final class ConsoleReporterPlugin implements AddsOutput, Bootable, HandlesArgume
         }
 
         return implode('.*', $patterns);
+    }
+
+    /**
+     * @param  array<int, string>  $arguments
+     */
+    private function hasExplicitTestPath(array $arguments): bool
+    {
+        $serverArguments = $_SERVER['argv'] ?? null;
+        $serverScript = is_array($serverArguments) ? ($serverArguments[0] ?? null) : null;
+
+        if (is_string($serverScript) && ($arguments[0] ?? null) === $serverScript) {
+            array_shift($arguments);
+        }
+
+        $valueOptions = [
+            '-c', '--configuration', '--bootstrap', '--cache-directory', '--filter', '--group',
+            '--exclude-group', '--covers', '--uses', '--test-suffix', '--testsuite',
+            '--exclude-testsuite', '--printer', '--columns', '--colors', '--order-by',
+            '--random-order-seed', '--include-path', '--whitelist', '--log-junit',
+            '--log-teamcity', '--testdox-html', '--testdox-text', '--coverage-clover',
+            '--coverage-cobertura', '--coverage-crap4j', '--coverage-html',
+            '--coverage-openclover', '--coverage-text', '--coverage-xml',
+            '--coverage-filter', '--repeat', '--retry-times', '--memory-limit', '--seed',
+        ];
+        $expectsValue = false;
+
+        foreach ($arguments as $argument) {
+            if ($expectsValue) {
+                $expectsValue = false;
+
+                continue;
+            }
+
+            if (in_array($argument, $valueOptions, true)) {
+                $expectsValue = true;
+
+                continue;
+            }
+
+            if (! str_starts_with($argument, '-')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

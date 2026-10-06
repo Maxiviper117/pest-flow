@@ -11,6 +11,7 @@ Every scenario remains a normal Pest test. Pest Flow records the behaviour hiera
 - [Install](#install)
 - [Write and run a scenario](#write-and-run-a-scenario)
 - [Generate reports](#generate-reports)
+- [Behaviour impact analysis](#behaviour-impact-analysis)
 - [Agent queries](#agent-queries)
 - [Organize and filter scenarios](#organize-and-filter-scenarios)
 - [How scenarios run](#how-scenarios-run)
@@ -150,6 +151,19 @@ vendor/bin/pest --flow-search="purchase order" --flow-search-in=step --flow-json
 `--flow-status` and step-text search run the Pest suite to collect execution metadata. Feature and rule filters, plus name-only searches, also narrow which Pest tests execute when the names match Pest's test names. Tag and source filters narrow the reported results; use Pest's native `--group` or `--filter` options to further constrain execution. Existing native selectors are preserved and disable automatic name scoping. Status filtering and step-text search are unavailable with `--parallel` because execution metadata is process-local.
 
 Agent queries inspect Pest Flow metadata and do not edit tests or behaviour definitions.
+
+## Behaviour impact analysis
+
+Pest Flow can map Pest's test-impact result to registered Features, Rules, and Scenarios:
+
+```sh
+vendor/bin/pest --flow-impact
+vendor/bin/pest --flow-impact=origin/main
+vendor/bin/pest --flow-impact --flow-json
+php vendor/bin/pest --flow-tia-fresh
+```
+
+Pest Flow uses Pest 5's TIA graph and reports `test-file` precision. It lists every Flow scenario registered in an affected test file, but it cannot identify individual affected cases in a mixed test file. Create or refresh the graph with `php vendor/bin/pest --flow-tia-fresh`; the command enables Xdebug coverage only in its child process and works across shells. The PHP CLI needs Xdebug or enabled PCOV. See the [impact analysis guide](docs/impact-analysis.mdx) for result states and comparison-base behavior.
 
 ### Living documentation
 

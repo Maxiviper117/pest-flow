@@ -17,7 +17,7 @@ Feature
 Pest still discovers and runs each scenario as a normal test. You keep Pest's assertions, lifecycle hooks, test runner, and failure output. Pest Flow records features, rules, scenarios, steps, identifiers, source locations, execution statuses, durations, and captured exceptions for PHP code to inspect.
 
 :::note[Current capabilities]
-Pest Flow provides the DSL, an in-memory behaviour registry, an optional terminal report enabled with `pest --flow`, versioned JSON export with `pest --flow-json`, static living documentation with `pest --flow-report`, and read-only agent queries with `pest --flow-list` and `pest --flow-search`.
+Pest Flow provides the DSL, an in-memory behaviour registry, terminal and JSON reports, static living documentation, read-only agent queries, and test-file-level behaviour impact analysis.
 :::
 
 ## Choose a starting point
@@ -37,6 +37,9 @@ Pest Flow provides the DSL, an in-memory behaviour registry, an optional termina
   </Card>
   <Card title="Agent queries" href="./agent-support" icon="search">
     List and search registered behaviour before editing application code.
+  </Card>
+  <Card title="Impact analysis" href="./impact-analysis" icon="activity">
+    Map changed files to behaviour associated with affected Pest test files.
   </Card>
 </CardGroup>
 
